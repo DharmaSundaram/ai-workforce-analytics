@@ -1,6 +1,26 @@
-node_modules/
-.venv/
+# Python
 __pycache__/
-dist/
-build/
+*.pyc
+*.pyo
+*.pkl
+
+# Virtual Environment
+.venv/
+venv/
+
+# Environment Variables
 .env
+
+# Database
+*.db
+instance/
+
+# React
+node_modules/
+build/
+
+# VS Code
+.vscode/
+
+# Logs
+*.log
