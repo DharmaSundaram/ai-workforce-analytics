@@ -76,12 +76,15 @@ def jira_auto_sync():
 
     with jira_sync_app.app_context():
         try:
-            from app import EmployeeHistory
+            from app import EmployeeHistory, get_jira_credentials
             from database import db
             import jira_sync
 
             print(f"[JIRA AUTO SYNC] Running at {datetime.now()}")
-            result = jira_sync.sync_jira_data(db, EmployeeHistory)
+
+            # Load credentials from DB settings (with .env fallback)
+            creds = get_jira_credentials()
+            result = jira_sync.sync_jira_data(db, EmployeeHistory, credentials=creds)
 
             if result.get("success"):
                 print(f"[JIRA AUTO SYNC] Success: {result.get('synced_records', 0)} records synced")

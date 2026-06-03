@@ -84,6 +84,7 @@ import {
   SyncOutlined,
   UserOutlined,
   HeartOutlined,
+  SettingOutlined,
 } from "@ant-design/icons";
 
 const { Header, Content } = Layout;
@@ -922,6 +923,15 @@ function Dashboard() {
             className="header-nav-btn"
           >
             History
+          </Button>
+
+          {/* Settings Link */}
+          <Button
+            icon={<SettingOutlined />}
+            onClick={() => navigate("/settings")}
+            className="header-nav-btn"
+          >
+            Settings
           </Button>
 
           {/* Logout */}

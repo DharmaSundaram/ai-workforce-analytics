@@ -105,6 +105,58 @@ class EmployeeHistory(db.Model):
     upload_time = db.Column(db.DateTime, default=datetime.utcnow)
     upload_batch_id = db.Column(db.String(50))
 
+# =========================================
+# SETTINGS MODEL (Jira config + sync interval)
+# =========================================
+class Settings(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    jira_url = db.Column(db.String(255), default='')
+    jira_email = db.Column(db.String(255), default='')
+    jira_api_token = db.Column(db.String(512), default='')
+    jira_project_key = db.Column(db.String(50), default='')
+    auto_sync_interval = db.Column(db.Integer, default=60)  # minutes
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+def get_settings():
+    """
+    Get the singleton Settings row, creating one if none exists.
+    """
+    settings = Settings.query.first()
+    if not settings:
+        settings = Settings()
+        db.session.add(settings)
+        db.session.commit()
+    return settings
+
+def get_jira_credentials():
+    """
+    Load Jira credentials from DB settings first, then fallback to .env.
+    Returns dict with url, email, token, project_key.
+    """
+    settings = get_settings()
+    url = (settings.jira_url or '').strip()
+    email = (settings.jira_email or '').strip()
+    token = (settings.jira_api_token or '').strip()
+    project_key = (settings.jira_project_key or '').strip()
+
+    # Fallback to .env if DB settings are empty
+    if not url:
+        url = os.environ.get('JIRA_URL', '').strip()
+    if not email:
+        email = os.environ.get('JIRA_EMAIL', '').strip()
+    if not token:
+        token = os.environ.get('JIRA_API_TOKEN', '').strip()
+    if not project_key:
+        project_key = os.environ.get('JIRA_PROJECT_KEY', '').strip()
+
+    return {
+        'url': url,
+        'email': email,
+        'token': token,
+        'project_key': project_key,
+        'auto_sync_interval': settings.auto_sync_interval or 60,
+    }
+
 BURNOUT_LABELS = {0: "High", 1: "Low", 2: "Medium"}
 
 # =========================================
@@ -916,6 +968,176 @@ def ai_summary():
         })
 
 
+# =========================================
+# SETTINGS MANAGEMENT ROUTES
+# =========================================
+
+@app.route("/api/settings", methods=["GET"])
+def get_settings_api():
+    """
+    Get current Jira settings.
+    Token is masked in the response for security.
+    """
+    try:
+        settings = get_settings()
+        creds = get_jira_credentials()
+
+        # Mask token: show only last 4 chars
+        token_display = ""
+        if creds['token']:
+            token_display = "•" * 20 + creds['token'][-4:] if len(creds['token']) > 4 else "•" * len(creds['token'])
+
+        return jsonify({
+            "success": True,
+            "settings": {
+                "jira_url": creds['url'],
+                "jira_email": creds['email'],
+                "jira_api_token_masked": token_display,
+                "jira_project_key": creds['project_key'],
+                "auto_sync_interval": creds['auto_sync_interval'],
+                "updated_at": settings.updated_at.isoformat() if settings.updated_at else None,
+                "source": "database" if (settings.jira_url or '').strip() else "env_fallback"
+            }
+        })
+    except Exception as e:
+        print(f"[SETTINGS GET ERROR] {e}")
+        return jsonify({"success": False, "error": str(e)})
+
+
+@app.route("/api/settings", methods=["PUT"])
+def update_settings_api():
+    """
+    Save Jira settings to SQLite.
+    If token field is all dots (masked), keep the existing token.
+    """
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({"success": False, "error": "No data provided"}), 400
+
+        settings = get_settings()
+
+        # Update fields if provided
+        if 'jira_url' in data:
+            settings.jira_url = data['jira_url'].strip()
+        if 'jira_email' in data:
+            settings.jira_email = data['jira_email'].strip()
+        if 'jira_project_key' in data:
+            settings.jira_project_key = data['jira_project_key'].strip()
+        if 'auto_sync_interval' in data:
+            interval = int(data['auto_sync_interval'])
+            settings.auto_sync_interval = max(5, min(1440, interval))
+
+        # Only update token if it's a real value (not masked dots)
+        if 'jira_api_token' in data:
+            token_val = data['jira_api_token'].strip()
+            if token_val and not token_val.startswith("•"):
+                settings.jira_api_token = token_val
+
+        settings.updated_at = datetime.utcnow()
+        db.session.commit()
+
+        print(f"[SETTINGS] Updated by user at {datetime.utcnow()}")
+
+        return jsonify({
+            "success": True,
+            "message": "Settings saved successfully"
+        })
+    except Exception as e:
+        print(f"[SETTINGS PUT ERROR] {e}")
+        db.session.rollback()
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route("/api/test-jira-connection", methods=["POST"])
+def test_jira_connection_api():
+    """
+    Test Jira connection using provided credentials or saved settings.
+    Accepts optional credentials in the request body; otherwise uses saved settings.
+    """
+    try:
+        from jira import JIRA
+
+        data = request.get_json() or {}
+
+        # Use provided credentials or fall back to saved settings
+        creds = get_jira_credentials()
+        url = data.get('jira_url', '').strip() or creds['url']
+        email = data.get('jira_email', '').strip() or creds['email']
+        token = data.get('jira_api_token', '').strip()
+        project_key = data.get('jira_project_key', '').strip() or creds['project_key']
+
+        # If token is masked or empty, use saved token
+        if not token or token.startswith("•"):
+            token = creds['token']
+
+        if not url or not email or not token:
+            return jsonify({
+                "success": False,
+                "connected": False,
+                "message": "Jira URL, Email, and API Token are required"
+            })
+
+        # Test connection
+        jira = JIRA(server=url, basic_auth=(email, token))
+        user_info = jira.myself()
+
+        # Test project access
+        project_msg = ""
+        if project_key:
+            try:
+                jira.project(project_key)
+                project_msg = f" Project '{project_key}' accessible."
+            except Exception:
+                project_msg = f" Warning: Project '{project_key}' not found."
+
+        return jsonify({
+            "success": True,
+            "connected": True,
+            "message": f"Connected successfully as {user_info.get('displayName', email)}.{project_msg}"
+        })
+
+    except Exception as e:
+        error_msg = str(e)
+        if "401" in error_msg or "Unauthorized" in error_msg:
+            error_msg = "Invalid Jira credentials. Please check your email and API token."
+        elif "403" in error_msg:
+            error_msg = "Access forbidden. Check your Jira permissions."
+        elif "404" in error_msg:
+            error_msg = "Jira URL not found. Please verify the URL."
+        elif "connect" in error_msg.lower() or "resolve" in error_msg.lower():
+            error_msg = f"Cannot connect to Jira server. Check the URL: {error_msg}"
+
+        print(f"[JIRA CONNECTION TEST] Failed: {e}")
+        return jsonify({
+            "success": True,
+            "connected": False,
+            "message": error_msg
+        })
+
+
+@app.route("/api/settings/sync-now", methods=["POST"])
+def settings_sync_now():
+    """
+    Trigger an immediate Jira sync using the current saved settings.
+    """
+    try:
+        import jira_sync
+        creds = get_jira_credentials()
+
+        if not creds['url'] or not creds['email'] or not creds['token'] or not creds['project_key']:
+            return jsonify({
+                "success": False,
+                "error": "Jira credentials are not configured. Please save settings first."
+            })
+
+        result = jira_sync.sync_jira_data(db, EmployeeHistory, credentials=creds)
+        return jsonify(result)
+    except Exception as e:
+        print(f"[SETTINGS SYNC NOW ERROR] {e}")
+        return jsonify({"success": False, "error": str(e)})
+
+
 @app.route("/api/login", methods=["POST"])
 def login():
     try:
@@ -1205,7 +1427,8 @@ def sync_jira():
         start_time = time.time()
         
         from jira_sync import sync_jira_data
-        result = sync_jira_data(db, EmployeeHistory)
+        creds = get_jira_credentials()
+        result = sync_jira_data(db, EmployeeHistory, credentials=creds)
         
         duration = round(time.time() - start_time, 2)
         
@@ -1279,7 +1502,7 @@ def jira_sync_status():
             "last_status": last_log.status if last_log else "idle",
             "last_records": last_log.total_records if last_log else 0,
             "next_sync": next_sync,
-            "jira_configured": bool(os.environ.get("JIRA_URL"))
+            "jira_configured": bool(get_jira_credentials()['url'])
         })
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})

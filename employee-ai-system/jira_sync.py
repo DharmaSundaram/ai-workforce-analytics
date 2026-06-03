@@ -5,14 +5,35 @@ import os
 load_dotenv()
 
 
-def test_jira_connection():
-    """Test if Jira credentials are configured and connection works."""
+def _get_credentials(credentials=None):
+    """
+    Resolve Jira credentials from the provided dict, or fallback to .env.
+    This allows both DB-based settings and .env-based settings to work.
+    """
+    if credentials:
+        return (
+            credentials.get('url', '').strip(),
+            credentials.get('email', '').strip(),
+            credentials.get('token', '').strip(),
+            credentials.get('project_key', '').strip(),
+        )
+    return (
+        os.environ.get("JIRA_URL", "").strip(),
+        os.environ.get("JIRA_EMAIL", "").strip(),
+        os.environ.get("JIRA_API_TOKEN", "").strip(),
+        os.environ.get("JIRA_PROJECT_KEY", "").strip(),
+    )
+
+
+def test_jira_connection(credentials=None):
+    """
+    Test if Jira credentials are configured and connection works.
+    Accepts optional credentials dict; otherwise uses .env.
+    """
     try:
         from jira import JIRA
 
-        url = os.environ.get("JIRA_URL", "").strip()
-        email = os.environ.get("JIRA_EMAIL", "").strip()
-        token = os.environ.get("JIRA_API_TOKEN", "").strip()
+        url, email, token, _ = _get_credentials(credentials)
 
         if not url or not email or not token:
             return False
@@ -95,32 +116,24 @@ def _extract_issue_metadata(issue):
     return metadata
 
 
-def sync_jira_data(db, EmployeeHistory):
+def sync_jira_data(db, EmployeeHistory, credentials=None):
     """
     Sync data from Jira to the local database.
 
     Parameters:
         db: SQLAlchemy database instance
         EmployeeHistory: The EmployeeHistory model class
+        credentials: Optional dict with url, email, token, project_key.
+                     If None, falls back to .env variables.
 
     Returns:
         dict with success status, synced_records count, and any errors
-
-    Improvements over v1:
-        - Issue-key based deduplication (not day-based)
-        - Safe story points extraction across Jira versions
-        - Rich metadata extraction (labels, components, sprint)
-        - Better unassigned issue handling
-        - Detailed sync statistics
     """
     try:
         from jira import JIRA
         from jira.exceptions import JIRAError
 
-        url = os.environ.get("JIRA_URL", "").strip()
-        email = os.environ.get("JIRA_EMAIL", "").strip()
-        token = os.environ.get("JIRA_API_TOKEN", "").strip()
-        project_key = os.environ.get("JIRA_PROJECT_KEY", "").strip()
+        url, email, token, project_key = _get_credentials(credentials)
 
         # Check if credentials are configured
         if not url or not email or not token or not project_key:
