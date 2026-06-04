@@ -1910,8 +1910,425 @@ def trigger_sync():
         last_sync_info["status"] = "error"
         return jsonify({"success": False, "error": str(e)})
 # =========================================
-# RUN APP
+# NOTIFICATION MODEL
 # =========================================
+class Notification(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    type = db.Column(db.String(50), nullable=False)       # jira_sync, burnout_alert, upload, settings
+    title = db.Column(db.String(200), nullable=False)
+    message = db.Column(db.Text, nullable=True)
+    severity = db.Column(db.String(20), default='info')    # info, success, warning, error
+    read = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+
+def create_notification(ntype, title, message="", severity="info"):
+    """Helper to create a notification record."""
+    try:
+        n = Notification(type=ntype, title=title, message=message, severity=severity)
+        db.session.add(n)
+        db.session.commit()
+    except Exception as e:
+        print(f"[NOTIFICATION] Failed to create: {e}")
+
+
+# =========================================
+# FEATURE 3: HISTORICAL ANALYTICS
+# =========================================
+
+@app.route("/api/historical-analytics", methods=["GET"])
+def historical_analytics():
+    """
+    Return productivity, burnout, and working hours trends.
+    Supports ?days=7|30|90 filter.
+    """
+    try:
+        days = int(request.args.get("days", 30))
+        if days not in [7, 30, 90]:
+            days = 30
+
+        from datetime import timedelta
+        cutoff = datetime.utcnow() - timedelta(days=days)
+
+        records = EmployeeHistory.query.filter(
+            EmployeeHistory.upload_time >= cutoff
+        ).order_by(EmployeeHistory.upload_time.asc()).all()
+
+        if not records:
+            return jsonify({"success": True, "has_data": False, "trends": {}})
+
+        # Group by date
+        from collections import defaultdict
+        daily = defaultdict(lambda: {"prod_sum": 0, "hours_sum": 0, "ot_sum": 0, "high": 0, "med": 0, "low": 0, "count": 0})
+
+        for r in records:
+            day_key = r.upload_time.strftime("%Y-%m-%d") if r.upload_time else "unknown"
+            d = daily[day_key]
+            d["prod_sum"] += float(r.productivity or 0)
+            d["hours_sum"] += float(r.working_hours or 0)
+            d["ot_sum"] += float(r.overtime_hours or 0)
+            b = r.burnout or "Low"
+            if b == "High": d["high"] += 1
+            elif b == "Medium": d["med"] += 1
+            else: d["low"] += 1
+            d["count"] += 1
+
+        productivity_trend = []
+        burnout_trend = []
+        hours_trend = []
+
+        for date_key in sorted(daily.keys()):
+            d = daily[date_key]
+            cnt = max(d["count"], 1)
+            productivity_trend.append({"date": date_key, "avg_productivity": round(d["prod_sum"] / cnt, 1), "count": cnt})
+            burnout_trend.append({"date": date_key, "high": d["high"], "medium": d["med"], "low": d["low"]})
+            hours_trend.append({"date": date_key, "avg_hours": round(d["hours_sum"] / cnt, 1), "avg_overtime": round(d["ot_sum"] / cnt, 2)})
+
+        return jsonify({
+            "success": True,
+            "has_data": True,
+            "days": days,
+            "total_records": len(records),
+            "trends": {
+                "productivity": productivity_trend,
+                "burnout": burnout_trend,
+                "hours": hours_trend
+            }
+        })
+    except Exception as e:
+        print(f"[HISTORICAL ERROR] {e}")
+        return jsonify({"success": False, "error": str(e)})
+
+
+# =========================================
+# FEATURE 4: AUDIT LOG PAGE
+# =========================================
+
+@app.route("/api/audit-logs", methods=["GET"])
+def get_audit_logs():
+    """
+    Paginated audit logs with search.
+    Supports ?page=1&per_page=20&search=login
+    """
+    try:
+        page = int(request.args.get("page", 1))
+        per_page = int(request.args.get("per_page", 20))
+        search = request.args.get("search", "").strip()
+
+        query = AuditLog.query.order_by(AuditLog.timestamp.desc())
+
+        if search:
+            query = query.filter(
+                db.or_(
+                    AuditLog.action.ilike(f"%{search}%"),
+                    AuditLog.user_email.ilike(f"%{search}%"),
+                    AuditLog.ip_address.ilike(f"%{search}%"),
+                )
+            )
+
+        total = query.count()
+        logs = query.offset((page - 1) * per_page).limit(per_page).all()
+
+        return jsonify({
+            "success": True,
+            "logs": [{
+                "id": l.id,
+                "user_id": l.user_id,
+                "user_email": l.user_email or "System",
+                "action": l.action,
+                "timestamp": l.timestamp.strftime("%Y-%m-%d %H:%M:%S") if l.timestamp else "",
+                "ip_address": l.ip_address or ""
+            } for l in logs],
+            "total": total,
+            "page": page,
+            "per_page": per_page,
+            "total_pages": (total + per_page - 1) // per_page
+        })
+    except Exception as e:
+        print(f"[AUDIT LOGS ERROR] {e}")
+        return jsonify({"success": False, "error": str(e)})
+
+
+# =========================================
+# FEATURE 5: NOTIFICATION CENTER
+# =========================================
+
+@app.route("/api/notifications", methods=["GET"])
+def get_notifications():
+    """Get recent notifications, optionally only unread."""
+    try:
+        unread_only = request.args.get("unread", "false").lower() == "true"
+        query = Notification.query.order_by(Notification.created_at.desc())
+        if unread_only:
+            query = query.filter_by(read=False)
+        notifications = query.limit(50).all()
+
+        return jsonify({
+            "success": True,
+            "notifications": [{
+                "id": n.id,
+                "type": n.type,
+                "title": n.title,
+                "message": n.message or "",
+                "severity": n.severity,
+                "read": n.read,
+                "created_at": n.created_at.strftime("%Y-%m-%d %H:%M:%S") if n.created_at else ""
+            } for n in notifications],
+            "unread_count": Notification.query.filter_by(read=False).count()
+        })
+    except Exception as e:
+        print(f"[NOTIFICATIONS ERROR] {e}")
+        return jsonify({"success": False, "notifications": [], "unread_count": 0})
+
+
+@app.route("/api/notifications/mark-read", methods=["POST"])
+def mark_notifications_read():
+    """Mark specific or all notifications as read."""
+    try:
+        data = request.get_json() or {}
+        nid = data.get("id")
+
+        if nid:
+            n = Notification.query.get(nid)
+            if n:
+                n.read = True
+        else:
+            Notification.query.filter_by(read=False).update({"read": True})
+
+        db.session.commit()
+        return jsonify({"success": True})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"success": False, "error": str(e)})
+
+
+# =========================================
+# FEATURE 6: AI WORKFORCE COPILOT
+# =========================================
+
+@app.route("/api/copilot", methods=["POST"])
+def ai_copilot():
+    """
+    Rule-based workforce Q&A chatbot.
+    Uses existing dashboard data to answer questions.
+    """
+    try:
+        data = request.get_json() or {}
+        question = (data.get("question") or "").strip().lower()
+
+        if not question:
+            return jsonify({"success": True, "answer": "Please ask a question about your workforce data."})
+
+        # Get latest batch data
+        latest = db.session.query(EmployeeHistory.upload_batch_id)\
+            .filter(EmployeeHistory.upload_batch_id.isnot(None))\
+            .order_by(EmployeeHistory.upload_time.desc()).first()
+
+        if not latest or not latest[0]:
+            return jsonify({"success": True, "answer": "No data available. Please upload a dataset first."})
+
+        records = EmployeeHistory.query.filter_by(upload_batch_id=latest[0]).all()
+        if not records:
+            return jsonify({"success": True, "answer": "No employee records found."})
+
+        # Build employee data
+        employees = []
+        for r in records:
+            employees.append({
+                "name": r.employee_name or "Unknown",
+                "project": r.project or "",
+                "productivity": float(r.productivity or 0),
+                "burnout": r.burnout or "Low",
+                "hours": float(r.working_hours or 0),
+                "overtime": float(r.overtime_hours or 0),
+            })
+
+        total = len(employees)
+        avg_prod = round(sum(e["productivity"] for e in employees) / total, 1) if total else 0
+        high_burnout = [e for e in employees if e["burnout"] == "High"]
+        med_burnout = [e for e in employees if e["burnout"] == "Medium"]
+        low_prod = sorted(employees, key=lambda e: e["productivity"])
+        high_prod = sorted(employees, key=lambda e: e["productivity"], reverse=True)
+        high_ot = sorted(employees, key=lambda e: e["overtime"], reverse=True)
+
+        # Projects
+        projects = {}
+        for e in employees:
+            p = e["project"] or "Unknown"
+            if p not in projects:
+                projects[p] = {"prod_sum": 0, "count": 0, "high_burnout": 0}
+            projects[p]["prod_sum"] += e["productivity"]
+            projects[p]["count"] += 1
+            if e["burnout"] == "High":
+                projects[p]["high_burnout"] += 1
+
+        answer = ""
+
+        # Pattern matching
+        if any(kw in question for kw in ["lowest productivity", "least productive", "worst performance", "low productivity"]):
+            bottom = low_prod[:5]
+            lines = [f"  • {e['name']} — {e['productivity']}% ({e['project']})" for e in bottom]
+            answer = f"📉 Lowest productivity employees:\n" + "\n".join(lines)
+
+        elif any(kw in question for kw in ["highest productivity", "most productive", "best performance", "top performer"]):
+            top = high_prod[:5]
+            lines = [f"  • {e['name']} — {e['productivity']}% ({e['project']})" for e in top]
+            answer = f"🌟 Top performing employees:\n" + "\n".join(lines)
+
+        elif any(kw in question for kw in ["high burnout", "burnout risk", "stressed", "at risk"]):
+            if high_burnout:
+                lines = [f"  • {e['name']} — {e['hours']}h, {e['overtime']}h OT ({e['project']})" for e in high_burnout[:8]]
+                answer = f"⚠️ {len(high_burnout)} employee(s) with HIGH burnout:\n" + "\n".join(lines)
+            else:
+                answer = "✅ No employees with high burnout risk currently."
+
+        elif any(kw in question for kw in ["department", "project", "team", "which department", "needs attention"]):
+            proj_stats = []
+            for pname, pdata in projects.items():
+                avg = round(pdata["prod_sum"] / pdata["count"], 1)
+                proj_stats.append({"name": pname, "avg_prod": avg, "count": pdata["count"], "high_burnout": pdata["high_burnout"]})
+            proj_stats.sort(key=lambda x: x["avg_prod"])
+            lines = [f"  • {p['name']} — Avg: {p['avg_prod']}%, {p['count']} members, {p['high_burnout']} high burnout" for p in proj_stats[:5]]
+            answer = f"📊 Department/Project analysis:\n" + "\n".join(lines)
+            if proj_stats[0]["avg_prod"] < 50:
+                answer += f"\n\n⚠️ '{proj_stats[0]['name']}' needs attention ({proj_stats[0]['avg_prod']}% avg productivity)"
+
+        elif any(kw in question for kw in ["overtime", "overwork", "extra hours"]):
+            top_ot = [e for e in high_ot if e["overtime"] > 0][:5]
+            if top_ot:
+                lines = [f"  • {e['name']} — {e['overtime']}h OT ({e['project']})" for e in top_ot]
+                answer = f"⏰ Employees with most overtime:\n" + "\n".join(lines)
+            else:
+                answer = "✅ No employees with significant overtime."
+
+        elif any(kw in question for kw in ["summary", "overview", "how is the team", "status"]):
+            answer = (
+                f"📈 Team Summary ({total} employees):\n"
+                f"  • Average Productivity: {avg_prod}%\n"
+                f"  • High Burnout: {len(high_burnout)} employees\n"
+                f"  • Medium Burnout: {len(med_burnout)} employees\n"
+                f"  • Projects: {len(projects)}\n"
+                f"  • Avg Hours: {round(sum(e['hours'] for e in employees) / total, 1)}h"
+            )
+
+        elif any(kw in question for kw in ["how many", "total", "count"]):
+            answer = f"📊 Current dataset has {total} employee records across {len(projects)} projects."
+
+        elif any(kw in question for kw in ["help", "what can you"]):
+            answer = (
+                "🤖 I can help you with:\n"
+                "  • \"Who has lowest productivity?\"\n"
+                "  • \"Show high burnout employees\"\n"
+                "  • \"Which department needs attention?\"\n"
+                "  • \"Show top performers\"\n"
+                "  • \"Who has the most overtime?\"\n"
+                "  • \"Give me a team summary\"\n"
+                "  • \"How many employees?\""
+            )
+
+        else:
+            answer = (
+                f"🤖 I'm not sure about that. Here's a quick summary:\n"
+                f"  • {total} employees, avg productivity {avg_prod}%\n"
+                f"  • {len(high_burnout)} high burnout, {len(med_burnout)} medium burnout\n\n"
+                f"Try asking: \"Who has lowest productivity?\" or \"Show high burnout employees\""
+            )
+
+        return jsonify({"success": True, "answer": answer})
+
+    except Exception as e:
+        print(f"[COPILOT ERROR] {e}")
+        return jsonify({"success": True, "answer": f"Error processing question: {str(e)}"})
+
+
+# =========================================
+# FEATURE 7: EXECUTIVE REPORT DATA
+# =========================================
+
+@app.route("/api/executive-report", methods=["GET"])
+def executive_report():
+    """
+    Generate executive report data (JSON).
+    Frontend will render this into PDF.
+    """
+    try:
+        latest = db.session.query(EmployeeHistory.upload_batch_id)\
+            .filter(EmployeeHistory.upload_batch_id.isnot(None))\
+            .order_by(EmployeeHistory.upload_time.desc()).first()
+
+        if not latest:
+            return jsonify({"success": False, "error": "No data available"})
+
+        records = EmployeeHistory.query.filter_by(upload_batch_id=latest[0]).all()
+        total = len(records)
+
+        if total == 0:
+            return jsonify({"success": False, "error": "No records found"})
+
+        # Stats
+        prods = [float(r.productivity or 0) for r in records]
+        hours_list = [float(r.working_hours or 0) for r in records]
+        ot_list = [float(r.overtime_hours or 0) for r in records]
+
+        burnout_counts = {"High": 0, "Medium": 0, "Low": 0}
+        for r in records:
+            b = r.burnout or "Low"
+            burnout_counts[b] = burnout_counts.get(b, 0) + 1
+
+        # Top/Bottom performers
+        sorted_by_prod = sorted(records, key=lambda r: float(r.productivity or 0), reverse=True)
+        top_5 = [{"name": r.employee_name, "productivity": float(r.productivity or 0), "project": r.project} for r in sorted_by_prod[:5]]
+        bottom_5 = [{"name": r.employee_name, "productivity": float(r.productivity or 0), "project": r.project} for r in sorted_by_prod[-5:]]
+
+        # Jira summary
+        jira_records = EmployeeHistory.query.filter(EmployeeHistory.upload_batch_id.like("jira-%")).count()
+        last_jira = JiraSyncLog.query.order_by(JiraSyncLog.sync_time.desc()).first()
+
+        report = {
+            "generated_at": datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S"),
+            "total_employees": total,
+            "productivity": {
+                "average": round(sum(prods) / total, 1),
+                "max": round(max(prods), 1),
+                "min": round(min(prods), 1),
+                "above_80": len([p for p in prods if p >= 80]),
+                "below_50": len([p for p in prods if p < 50]),
+            },
+            "burnout": burnout_counts,
+            "workload": {
+                "avg_hours": round(sum(hours_list) / total, 1),
+                "avg_overtime": round(sum(ot_list) / total, 2),
+                "max_overtime": round(max(ot_list), 2),
+                "overtime_employees": len([o for o in ot_list if o > 0]),
+            },
+            "top_performers": top_5,
+            "needs_improvement": bottom_5,
+            "jira": {
+                "total_synced_records": jira_records,
+                "last_sync": last_jira.sync_time.strftime("%Y-%m-%d %H:%M:%S") if last_jira else "Never",
+                "last_status": last_jira.status if last_jira else "N/A",
+            },
+            "recommendations": [],
+        }
+
+        # Generate executive recommendations
+        if burnout_counts["High"] > 0:
+            report["recommendations"].append(f"⚠️ {burnout_counts['High']} employees at high burnout risk — immediate intervention needed")
+        if report["productivity"]["below_50"] > 0:
+            report["recommendations"].append(f"📉 {report['productivity']['below_50']} employees below 50% productivity — training recommended")
+        if report["workload"]["avg_overtime"] > 1:
+            report["recommendations"].append(f"⏰ Average overtime {report['workload']['avg_overtime']}h — workload redistribution needed")
+        if report["productivity"]["average"] >= 70:
+            report["recommendations"].append(f"✅ Team productivity is strong at {report['productivity']['average']}%")
+        if burnout_counts["High"] == 0 and burnout_counts["Medium"] == 0:
+            report["recommendations"].append("✅ No significant burnout risk across the team")
+
+        return jsonify({"success": True, "report": report})
+
+    except Exception as e:
+        print(f"[EXECUTIVE REPORT ERROR] {e}")
+        return jsonify({"success": False, "error": str(e)})
+
 
 # =========================================
 # RUN APP

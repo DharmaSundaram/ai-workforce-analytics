@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import Papa from "papaparse";
 import { useTheme } from "../context/ThemeContext";
 import EmployeeModal from "../components/EmployeeModal";
+import NotificationBell from "../components/NotificationBell";
+import CopilotChat from "../components/CopilotChat";
 import { SkeletonKPIs, SkeletonCharts, SkeletonTable } from "../components/SkeletonCards";
 import { exportAnalyticsPDF } from "../utils/pdfExport";
 import "../App.css";
@@ -85,6 +87,7 @@ import {
   UserOutlined,
   HeartOutlined,
   SettingOutlined,
+  AuditOutlined,
 } from "@ant-design/icons";
 
 const { Header, Content } = Layout;
@@ -933,6 +936,27 @@ function Dashboard() {
           >
             Settings
           </Button>
+
+          {/* Audit Logs Link */}
+          <Button
+            icon={<AuditOutlined />}
+            onClick={() => navigate("/audit-logs")}
+            className="header-nav-btn"
+          >
+            Audit
+          </Button>
+
+          {/* Analytics Link */}
+          <Button
+            icon={<AreaChartOutlined />}
+            onClick={() => navigate("/analytics")}
+            className="header-nav-btn"
+          >
+            Analytics
+          </Button>
+
+          {/* Notification Bell */}
+          <NotificationBell />
 
           {/* Logout */}
           <Button
@@ -2376,6 +2400,10 @@ function Dashboard() {
         />
 
       </Content>
+
+      {/* AI Copilot Floating Chat */}
+      <CopilotChat />
+
     </Layout>
   );
 }

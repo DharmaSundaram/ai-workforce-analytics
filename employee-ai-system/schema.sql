@@ -87,3 +87,19 @@ CREATE TABLE IF NOT EXISTS settings (
 
     CONSTRAINT chk_sync_interval CHECK (auto_sync_interval >= 5 AND auto_sync_interval <= 1440)
 );
+
+-- =========================================
+-- NOTIFICATIONS (System Events)
+-- =========================================
+CREATE TABLE IF NOT EXISTS notification (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    type            VARCHAR(50) NOT NULL,           -- jira_sync, burnout_alert, upload, settings
+    title           VARCHAR(200) NOT NULL,
+    message         TEXT,
+    severity        VARCHAR(20) DEFAULT 'info' CHECK (severity IN ('info', 'success', 'warning', 'error')),
+    read            BOOLEAN DEFAULT 0,
+    created_at      DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_notif_read       ON notification(read);
+CREATE INDEX IF NOT EXISTS idx_notif_created    ON notification(created_at);
