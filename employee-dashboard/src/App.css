@@ -2458,3 +2458,1405 @@ body,
   background: rgba(139,92,246,0.5);
 }
 
+
+/* =====================================================================
+   ENTERPRISE PREMIUM VISUAL UPGRADE
+   Futuristic AI Platform — Palantir/Tesla/Vercel Inspired
+   ===================================================================== */
+
+/* ---- New Design Tokens ---- */
+:root {
+  --glow-primary: rgba(37, 99, 235, 0.15);
+  --glow-accent: rgba(124, 58, 237, 0.12);
+  --glow-ai: rgba(6, 182, 212, 0.1);
+  --glow-neon: rgba(56, 189, 248, 0.08);
+  --gradient-border: linear-gradient(135deg, #2563eb, #06b6d4, #8b5cf6, #2563eb);
+  --gradient-accent: linear-gradient(135deg, #0ea5e9, #8b5cf6);
+  --noise-opacity: 0.02;
+  --ambient-size: 300px;
+}
+
+/* ---- Premium Keyframes ---- */
+@keyframes gradientRotate {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes ambientPulse {
+  0%, 100% { opacity: 0.4; transform: scale(1); }
+  50% { opacity: 0.7; transform: scale(1.1); }
+}
+
+@keyframes neonGlow {
+  0%, 100% { text-shadow: 0 0 4px rgba(56,189,248,0.3), 0 0 12px rgba(56,189,248,0.1); }
+  50% { text-shadow: 0 0 8px rgba(56,189,248,0.5), 0 0 24px rgba(56,189,248,0.2); }
+}
+
+@keyframes slideInUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideInLeft {
+  from { opacity: 0; transform: translateX(-16px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes dataStream {
+  0% { background-position: 0 0; }
+  100% { background-position: 0 100px; }
+}
+
+@keyframes borderGlow {
+  0%, 100% { border-color: rgba(37,99,235,0.2); }
+  33% { border-color: rgba(6,182,212,0.3); }
+  66% { border-color: rgba(139,92,246,0.3); }
+}
+
+@keyframes scanLine {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(100vh); }
+}
+
+@keyframes dotPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.8); }
+}
+
+@keyframes cardEntrance {
+  from { opacity: 0; transform: translateY(12px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes glowPulseSubtle {
+  0%, 100% { box-shadow: 0 0 20px rgba(37,99,235,0.05), 0 8px 32px rgba(0,0,0,0.2); }
+  50% { box-shadow: 0 0 30px rgba(37,99,235,0.1), 0 8px 32px rgba(0,0,0,0.25); }
+}
+
+/* ---- Noise Texture Overlay ---- */
+.app-layout::before {
+  content: '';
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: var(--noise-opacity);
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 128px 128px;
+}
+
+/* ---- Subtle Grid Background ---- */
+.app-content {
+  position: relative;
+}
+
+.app-content::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.015;
+  background-image:
+    linear-gradient(rgba(56,189,248,0.3) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(56,189,248,0.3) 1px, transparent 1px);
+  background-size: 60px 60px;
+}
+
+.app-content > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* ---- Premium Glass Card Override ---- */
+.glass-card {
+  background: var(--bg-glass) !important;
+  backdrop-filter: blur(24px) saturate(1.6) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(1.6) !important;
+  border: 1px solid rgba(255,255,255,0.06) !important;
+  box-shadow:
+    0 4px 16px rgba(0,0,0,0.2),
+    0 12px 48px rgba(0,0,0,0.15),
+    inset 0 1px 0 rgba(255,255,255,0.04) !important;
+  border-radius: 16px !important;
+  animation: cardEntrance 0.5s ease-out both;
+}
+
+.glass-card:hover {
+  border-color: rgba(37,99,235,0.2) !important;
+  box-shadow:
+    0 4px 16px rgba(0,0,0,0.2),
+    0 16px 56px rgba(0,0,0,0.2),
+    0 0 24px rgba(37,99,235,0.06),
+    inset 0 1px 0 rgba(255,255,255,0.06) !important;
+  transform: translateY(-3px);
+}
+
+/* ---- Frosted Glass Header ---- */
+.app-header {
+  backdrop-filter: blur(20px) saturate(1.5) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(1.5) !important;
+  background: linear-gradient(90deg,
+    rgba(10,22,40,0.92) 0%,
+    rgba(17,34,68,0.88) 50%,
+    rgba(10,22,40,0.92) 100%) !important;
+  border-bottom: 1px solid rgba(37,99,235,0.15) !important;
+  box-shadow:
+    0 4px 24px rgba(0,0,0,0.3),
+    0 1px 0 rgba(56,189,248,0.05) !important;
+}
+
+/* ---- Header Title Neon ---- */
+.header-title {
+  animation: neonGlow 4s ease-in-out infinite;
+}
+
+/* ---- Nav Button Premium ---- */
+.header-nav-btn {
+  position: relative;
+  overflow: hidden;
+  border-radius: 8px !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.header-nav-btn::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: 0;
+  height: 2px;
+  background: var(--gradient-accent);
+  transition: all 0.3s ease;
+  transform: translateX(-50%);
+  border-radius: 2px;
+}
+
+.header-nav-btn:hover::after {
+  width: 70%;
+}
+
+.header-nav-btn:hover {
+  background: rgba(37,99,235,0.08) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(37,99,235,0.15);
+}
+
+/* ---- KPI Cards — Gradient Border + Ambient Glow ---- */
+.kpi-card {
+  position: relative;
+  overflow: visible !important;
+  border-radius: 16px !important;
+  animation: borderGlow 6s ease-in-out infinite, cardEntrance 0.5s ease-out both;
+}
+
+.kpi-card::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 120%;
+  height: 120%;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: -1;
+}
+
+.kpi-card-1::before { background: radial-gradient(circle, rgba(96,165,250,0.06) 0%, transparent 70%); }
+.kpi-card-2::before { background: radial-gradient(circle, rgba(248,113,113,0.06) 0%, transparent 70%); }
+.kpi-card-3::before { background: radial-gradient(circle, rgba(52,211,153,0.06) 0%, transparent 70%); }
+.kpi-card-4::before { background: radial-gradient(circle, rgba(251,191,36,0.06) 0%, transparent 70%); }
+.kpi-card-5::before { background: radial-gradient(circle, rgba(251,146,60,0.06) 0%, transparent 70%); }
+.kpi-card-6::before { background: radial-gradient(circle, rgba(167,139,250,0.06) 0%, transparent 70%); }
+
+.kpi-card:nth-child(1) { animation-delay: 0s; }
+.kpi-card:nth-child(2) { animation-delay: 0.06s; }
+.kpi-card:nth-child(3) { animation-delay: 0.12s; }
+.kpi-card:nth-child(4) { animation-delay: 0.18s; }
+.kpi-card:nth-child(5) { animation-delay: 0.24s; }
+.kpi-card:nth-child(6) { animation-delay: 0.3s; }
+
+.kpi-card:hover {
+  transform: translateY(-4px) scale(1.02);
+  box-shadow:
+    0 16px 48px rgba(0,0,0,0.3),
+    0 0 32px var(--glow-primary) !important;
+}
+
+/* ---- KPI Statistic Number Animation ---- */
+.kpi-card .ant-statistic-content-value {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum';
+  animation: countUp 0.6s ease-out both;
+}
+
+/* ---- Executive KPI Premium ---- */
+.exec-kpi-hover {
+  position: relative;
+  border-radius: 16px;
+  animation: cardEntrance 0.5s ease-out both;
+}
+
+.exec-kpi-hover::after {
+  content: '';
+  position: absolute;
+  top: -1px; left: -1px; right: -1px; bottom: -1px;
+  border-radius: 17px;
+  background: var(--gradient-border);
+  background-size: 300% 300%;
+  animation: gradientRotate 8s ease infinite;
+  z-index: -1;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+
+.exec-kpi-hover:hover::after {
+  opacity: 0.3;
+}
+
+.exec-kpi-hover:hover {
+  transform: translateY(-4px) scale(1.02);
+  box-shadow:
+    0 16px 48px rgba(0,0,0,0.3),
+    0 0 40px rgba(37,99,235,0.08);
+}
+
+/* ---- Chart Cards — Premium Hover ---- */
+.chart-card,
+.leaderboard-card,
+.accuracy-card {
+  overflow: hidden !important;
+  animation: cardEntrance 0.5s ease-out both;
+}
+
+.chart-card:hover,
+.leaderboard-card:hover,
+.accuracy-card:hover {
+  animation: glowPulseSubtle 3s ease-in-out infinite;
+}
+
+/* ---- Recharts Tooltip Premium ---- */
+.recharts-default-tooltip {
+  backdrop-filter: blur(12px) !important;
+  border: 1px solid rgba(56,189,248,0.15) !important;
+  border-radius: 10px !important;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4) !important;
+}
+
+/* ---- Table Premium ---- */
+.ant-table {
+  border-radius: 12px !important;
+  overflow: hidden;
+}
+
+.ant-table-thead > tr > th {
+  background: rgba(15,31,61,0.8) !important;
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid rgba(37,99,235,0.15) !important;
+  color: var(--text-muted) !important;
+  font-weight: 600 !important;
+  font-size: 11px !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.5px !important;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.ant-table-tbody > tr > td {
+  border-bottom: 1px solid rgba(255,255,255,0.03) !important;
+  transition: all 0.2s ease;
+}
+
+.ant-table-tbody > tr.ant-table-row:hover > td {
+  background: rgba(37,99,235,0.06) !important;
+  box-shadow: inset 3px 0 0 #2563eb;
+}
+
+/* ---- Table Pagination Premium ---- */
+.ant-pagination-item {
+  border-radius: 8px !important;
+  border-color: rgba(255,255,255,0.08) !important;
+  transition: all 0.2s ease;
+}
+
+.ant-pagination-item:hover {
+  border-color: rgba(37,99,235,0.4) !important;
+  box-shadow: 0 0 12px rgba(37,99,235,0.15);
+}
+
+.ant-pagination-item-active {
+  background: rgba(37,99,235,0.15) !important;
+  border-color: #2563eb !important;
+  box-shadow: 0 0 16px rgba(37,99,235,0.2);
+}
+
+/* ---- Upload Card Premium ---- */
+.upload-card {
+  position: relative;
+  overflow: hidden !important;
+}
+
+.upload-card::after {
+  content: '';
+  position: absolute;
+  top: -2px; left: -2px; right: -2px; bottom: -2px;
+  border-radius: 18px;
+  background: var(--gradient-border);
+  background-size: 300% 300%;
+  animation: gradientRotate 6s ease infinite;
+  z-index: -1;
+  opacity: 0.15;
+}
+
+.upload-card:hover::after {
+  opacity: 0.35;
+}
+
+/* ---- AI Summary Section Glow ---- */
+.ai-summary-card,
+[class*="summary"] .glass-card {
+  position: relative;
+}
+
+/* ---- Prediction Card Premium ---- */
+.prediction-card {
+  position: relative;
+  overflow: hidden !important;
+}
+
+.prediction-card::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(ellipse at center, rgba(139,92,246,0.04) 0%, transparent 60%);
+  pointer-events: none;
+  animation: ambientPulse 6s ease-in-out infinite;
+}
+
+/* ---- Filter Card Premium ---- */
+.filter-card {
+  border-left: 3px solid transparent !important;
+  border-image: var(--gradient-accent) 1 !important;
+  border-image-slice: 0 0 0 3 !important;
+}
+
+/* ---- Input Fields Premium ---- */
+.ant-input,
+.ant-select-selector,
+.ant-input-password {
+  transition: all 0.3s ease !important;
+}
+
+.ant-input:focus,
+.ant-input-focused,
+.ant-select-focused .ant-select-selector,
+.ant-input-affix-wrapper-focused {
+  box-shadow: 0 0 0 2px rgba(37,99,235,0.15), 0 0 16px rgba(37,99,235,0.08) !important;
+}
+
+/* ---- Button Premium Effects ---- */
+.ant-btn-primary {
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.ant-btn-primary::before {
+  content: '';
+  position: absolute;
+  top: 0; left: -100%; right: 0; bottom: 0;
+  width: 200%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+  transition: transform 0.5s ease;
+}
+
+.ant-btn-primary:hover::before {
+  transform: translateX(100%);
+}
+
+.ant-btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(37,99,235,0.3) !important;
+}
+
+/* ---- Tag Premium ---- */
+.ant-tag {
+  border-radius: 6px !important;
+  font-weight: 500 !important;
+  transition: all 0.2s ease;
+}
+
+/* ---- Modal Premium ---- */
+.ant-modal .ant-modal-content {
+  backdrop-filter: blur(24px) saturate(1.4) !important;
+  border: 1px solid rgba(255,255,255,0.06) !important;
+  box-shadow:
+    0 24px 80px rgba(0,0,0,0.5),
+    0 0 40px rgba(37,99,235,0.06) !important;
+  border-radius: 20px !important;
+  animation: slideInUp 0.3s ease-out;
+}
+
+/* ---- Notification Premium ---- */
+.ant-notification-notice {
+  backdrop-filter: blur(16px) !important;
+  border: 1px solid rgba(255,255,255,0.06) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.3) !important;
+  animation: slideInLeft 0.3s ease-out;
+}
+
+/* ---- Progress Bars Premium ---- */
+.ant-progress-line .ant-progress-bg {
+  border-radius: 4px !important;
+  box-shadow: 0 0 8px rgba(37,99,235,0.2);
+}
+
+/* ---- Skeleton Premium Shimmer ---- */
+.skeleton-shimmer {
+  background: linear-gradient(90deg,
+    rgba(255,255,255,0.02) 0%,
+    rgba(56,189,248,0.04) 50%,
+    rgba(255,255,255,0.02) 100%
+  ) !important;
+  background-size: 400px 100%;
+  animation: shimmer 2s infinite linear;
+}
+
+/* ---- Badge Premium ---- */
+.ant-badge-count {
+  box-shadow: 0 0 8px rgba(239,68,68,0.4), 0 0 16px rgba(239,68,68,0.2) !important;
+}
+
+/* ---- Divider Premium ---- */
+.ant-divider {
+  border-color: rgba(255,255,255,0.04) !important;
+}
+
+/* ---- Content Stagger Entrance ---- */
+.app-content > *:nth-child(1) { animation: cardEntrance 0.4s ease-out 0.0s both; }
+.app-content > *:nth-child(2) { animation: cardEntrance 0.4s ease-out 0.05s both; }
+.app-content > *:nth-child(3) { animation: cardEntrance 0.4s ease-out 0.1s both; }
+.app-content > *:nth-child(4) { animation: cardEntrance 0.4s ease-out 0.15s both; }
+.app-content > *:nth-child(5) { animation: cardEntrance 0.4s ease-out 0.2s both; }
+.app-content > *:nth-child(6) { animation: cardEntrance 0.4s ease-out 0.25s both; }
+.app-content > *:nth-child(7) { animation: cardEntrance 0.4s ease-out 0.3s both; }
+.app-content > *:nth-child(8) { animation: cardEntrance 0.4s ease-out 0.35s both; }
+.app-content > *:nth-child(9) { animation: cardEntrance 0.4s ease-out 0.4s both; }
+.app-content > *:nth-child(10) { animation: cardEntrance 0.4s ease-out 0.45s both; }
+.app-content > *:nth-child(n+11) { animation: cardEntrance 0.4s ease-out 0.5s both; }
+
+/* ---- AI Status Indicator ---- */
+.header-brand::after {
+  content: '';
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #10b981;
+  margin-left: 12px;
+  box-shadow: 0 0 6px rgba(16,185,129,0.6), 0 0 12px rgba(16,185,129,0.3);
+  animation: dotPulse 2s ease-in-out infinite;
+}
+
+/* ---- Recharts Container Hover ---- */
+.recharts-responsive-container {
+  transition: transform 0.3s ease;
+}
+
+.glass-card:hover .recharts-responsive-container {
+  transform: scale(1.005);
+}
+
+/* ---- Selection Style ---- */
+::selection {
+  background: rgba(37,99,235,0.3);
+  color: #fff;
+}
+
+/* ---- Focus Visible Ring ---- */
+*:focus-visible {
+  outline: 2px solid rgba(37,99,235,0.5);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ---- Smooth Font Rendering ---- */
+body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* ---- Light Theme Overrides for Premium ---- */
+[data-theme="light"] .glass-card {
+  box-shadow:
+    0 4px 16px rgba(0,0,0,0.04),
+    0 12px 48px rgba(0,0,0,0.06),
+    inset 0 1px 0 rgba(255,255,255,0.8) !important;
+}
+
+[data-theme="light"] .app-layout::before {
+  opacity: 0.01;
+}
+
+[data-theme="light"] .app-content::before {
+  opacity: 0.008;
+  background-image:
+    linear-gradient(rgba(0,0,0,0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,0,0,0.05) 1px, transparent 1px);
+}
+
+[data-theme="light"] .header-title {
+  animation: none;
+}
+
+[data-theme="light"] .kpi-card:hover {
+  box-shadow: 0 12px 40px rgba(0,0,0,0.1) !important;
+}
+
+[data-theme="light"] .ant-table-thead > tr > th {
+  background: rgba(241,245,249,0.9) !important;
+  color: #334155 !important;
+}
+
+[data-theme="light"] .header-brand::after {
+  box-shadow: 0 0 4px rgba(16,185,129,0.4);
+}
+
+/* =====================================================================
+   FUTURISTIC AI PLATFORM — ENTERPRISE VISUAL UPGRADE
+   Glassmorphism | Ambient Lighting | Gradient Borders | Micro-Animations
+   Inspired by: Palantir Foundry, Vercel, Stripe Analytics, Tesla MC
+   ===================================================================== */
+
+/* ---- Enhanced Design Tokens ---- */
+:root {
+  --glow-primary: rgba(37, 99, 235, 0.15);
+  --glow-accent: rgba(124, 58, 237, 0.12);
+  --glow-ai: rgba(16, 185, 129, 0.1);
+  --glow-cyan: rgba(6, 182, 212, 0.12);
+  --gradient-border: linear-gradient(135deg, #2563eb, #06b6d4, #7c3aed, #2563eb);
+  --noise-opacity: 0.015;
+  --ambient-1: radial-gradient(600px circle at 20% 20%, rgba(37,99,235,0.06), transparent 50%);
+  --ambient-2: radial-gradient(600px circle at 80% 80%, rgba(124,58,237,0.05), transparent 50%);
+}
+
+/* ---- NEW: Futuristic Keyframes ---- */
+@keyframes gradientRotate {
+  0% { --angle: 0deg; background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes borderGlow {
+  0%, 100% { border-color: rgba(37,99,235,0.2); box-shadow: 0 0 15px rgba(37,99,235,0.05); }
+  33% { border-color: rgba(6,182,212,0.25); box-shadow: 0 0 15px rgba(6,182,212,0.06); }
+  66% { border-color: rgba(124,58,237,0.25); box-shadow: 0 0 15px rgba(124,58,237,0.06); }
+}
+
+@keyframes ambientBreathe {
+  0%, 100% { opacity: 0.4; transform: scale(1); }
+  50% { opacity: 0.7; transform: scale(1.05); }
+}
+
+@keyframes neonPulse {
+  0%, 100% { text-shadow: 0 0 4px rgba(37,99,235,0.3); }
+  50% { text-shadow: 0 0 12px rgba(37,99,235,0.5), 0 0 24px rgba(37,99,235,0.2); }
+}
+
+@keyframes scanLine {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(100%); }
+}
+
+@keyframes dataFlow {
+  0% { background-position: 0% 0%; }
+  100% { background-position: 200% 0%; }
+}
+
+@keyframes slideInUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideInLeft {
+  from { opacity: 0; transform: translateX(-16px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.92); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes counterReveal {
+  from { opacity: 0; transform: translateY(8px); filter: blur(4px); }
+  to { opacity: 1; transform: translateY(0); filter: blur(0); }
+}
+
+/* ---- Ambient Background Atmosphere ---- */
+.app-content::before {
+  content: '';
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: var(--ambient-1), var(--ambient-2);
+  pointer-events: none;
+  z-index: 0;
+  animation: ambientBreathe 8s ease-in-out infinite;
+}
+
+.app-content > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Subtle grid pattern */
+body::after {
+  content: '';
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-image:
+    linear-gradient(rgba(37,99,235,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(37,99,235,0.03) 1px, transparent 1px);
+  background-size: 60px 60px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+[data-theme="light"] body::after {
+  background-image:
+    linear-gradient(rgba(0,0,0,0.015) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,0,0,0.015) 1px, transparent 1px);
+}
+
+/* ---- HEADER: Frosted Glass Navigation ---- */
+.app-header {
+  backdrop-filter: blur(24px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
+  background: linear-gradient(90deg,
+    rgba(10,22,40,0.85) 0%,
+    rgba(17,34,68,0.9) 50%,
+    rgba(10,22,40,0.85) 100%) !important;
+  border-bottom: 1px solid rgba(37,99,235,0.15) !important;
+  box-shadow:
+    0 1px 0 rgba(37,99,235,0.1),
+    0 4px 24px rgba(0,0,0,0.4),
+    0 0 60px rgba(37,99,235,0.04) !important;
+}
+
+[data-theme="light"] .app-header {
+  background: linear-gradient(90deg,
+    rgba(248,250,252,0.9) 0%,
+    rgba(226,232,240,0.95) 50%,
+    rgba(248,250,252,0.9) 100%) !important;
+  border-bottom: 1px solid rgba(37,99,235,0.1) !important;
+  box-shadow: 0 1px 0 rgba(0,0,0,0.05), 0 4px 20px rgba(0,0,0,0.06) !important;
+}
+
+/* Header nav buttons — magnetic hover */
+.header-nav-btn {
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  border-radius: 10px !important;
+}
+
+.header-nav-btn::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 50%;
+  width: 0; height: 2px;
+  background: linear-gradient(90deg, #2563eb, #06b6d4);
+  transition: all 0.3s ease;
+  transform: translateX(-50%);
+  border-radius: 2px;
+}
+
+.header-nav-btn:hover::after {
+  width: 70%;
+}
+
+.header-nav-btn:hover {
+  transform: translateY(-2px) !important;
+  background: rgba(37,99,235,0.08) !important;
+  box-shadow: 0 4px 16px rgba(37,99,235,0.15) !important;
+}
+
+/* Header AI status indicator */
+.header-brand::after {
+  animation: ambientBreathe 3s ease-in-out infinite !important;
+}
+
+/* ---- GLASSMORPHISM UPGRADE ---- */
+.glass-card {
+  backdrop-filter: blur(24px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
+  background: var(--bg-glass) !important;
+  border: 1px solid rgba(37,99,235,0.1) !important;
+  border-radius: 16px !important;
+  box-shadow:
+    0 4px 6px rgba(0,0,0,0.07),
+    0 12px 40px rgba(0,0,0,0.15),
+    inset 0 1px 0 rgba(255,255,255,0.04) !important;
+  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  position: relative;
+  overflow: hidden;
+}
+
+.glass-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(37,99,235,0.3), rgba(6,182,212,0.2), transparent);
+  opacity: 0;
+  transition: opacity 0.35s ease;
+}
+
+.glass-card:hover::before {
+  opacity: 1;
+}
+
+.glass-card:hover {
+  border-color: rgba(37,99,235,0.2) !important;
+  box-shadow:
+    0 4px 6px rgba(0,0,0,0.07),
+    0 20px 50px rgba(0,0,0,0.2),
+    0 0 40px rgba(37,99,235,0.04),
+    inset 0 1px 0 rgba(255,255,255,0.06) !important;
+  transform: translateY(-3px);
+}
+
+/* ---- KPI CARDS: Animated Gradient Borders ---- */
+.kpi-card {
+  position: relative;
+  overflow: hidden;
+  animation: slideInUp 0.5s ease-out both;
+  border: 1px solid transparent !important;
+  background-clip: padding-box !important;
+}
+
+.kpi-card::after {
+  content: '';
+  position: absolute;
+  top: -50%; left: -50%;
+  width: 200%; height: 200%;
+  background: conic-gradient(from 0deg, transparent, rgba(37,99,235,0.1), transparent, rgba(124,58,237,0.08), transparent);
+  animation: gradientRotate 6s linear infinite;
+  z-index: 0;
+  opacity: 0;
+  transition: opacity 0.5s ease;
+}
+
+.kpi-card:hover::after {
+  opacity: 1;
+}
+
+.kpi-card > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Staggered entrance for KPI cards */
+.kpi-card-1 { animation-delay: 0s; }
+.kpi-card-2 { animation-delay: 0.06s; }
+.kpi-card-3 { animation-delay: 0.12s; }
+.kpi-card-4 { animation-delay: 0.18s; }
+.kpi-card-5 { animation-delay: 0.24s; }
+.kpi-card-6 { animation-delay: 0.30s; }
+
+/* KPI counter reveal animation */
+.kpi-card .ant-statistic-content-value {
+  animation: counterReveal 0.6s ease-out both;
+}
+
+.kpi-card-1 .ant-statistic-content-value { animation-delay: 0.3s; }
+.kpi-card-2 .ant-statistic-content-value { animation-delay: 0.36s; }
+.kpi-card-3 .ant-statistic-content-value { animation-delay: 0.42s; }
+.kpi-card-4 .ant-statistic-content-value { animation-delay: 0.48s; }
+.kpi-card-5 .ant-statistic-content-value { animation-delay: 0.54s; }
+.kpi-card-6 .ant-statistic-content-value { animation-delay: 0.60s; }
+
+/* KPI icon ambient glow */
+.kpi-icon {
+  position: relative;
+}
+
+.kpi-icon::after {
+  content: '';
+  position: absolute;
+  top: 50%; left: 50%;
+  width: 60px; height: 60px;
+  border-radius: 50%;
+  background: radial-gradient(circle, currentColor 0%, transparent 70%);
+  opacity: 0.06;
+  transform: translate(-50%, -50%);
+  filter: blur(8px);
+}
+
+/* ---- Executive KPI hover enhancement ---- */
+.exec-kpi-hover {
+  position: relative;
+  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  animation: slideInUp 0.5s ease-out both;
+}
+
+.exec-kpi-hover::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 16px;
+  padding: 1px;
+  background: linear-gradient(135deg, rgba(37,99,235,0.2), rgba(6,182,212,0.15), rgba(124,58,237,0.2));
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+
+.exec-kpi-hover:hover::before {
+  opacity: 1;
+}
+
+.exec-kpi-hover:hover {
+  transform: translateY(-4px) scale(1.02) !important;
+  box-shadow:
+    0 16px 48px rgba(0,0,0,0.25),
+    0 0 40px rgba(37,99,235,0.06) !important;
+}
+
+/* ---- CHART CARDS: Premium Styling ---- */
+.chart-card {
+  animation: slideInUp 0.6s ease-out both;
+  animation-delay: 0.2s;
+}
+
+.chart-card:hover {
+  border-color: rgba(37,99,235,0.15) !important;
+}
+
+/* Recharts tooltip dark premium */
+.recharts-default-tooltip {
+  backdrop-filter: blur(16px) !important;
+  border-radius: 10px !important;
+}
+
+/* Chart container subtle glow */
+.recharts-wrapper {
+  filter: drop-shadow(0 0 8px rgba(37,99,235,0.04));
+}
+
+/* ---- TABLE: Futuristic Grid ---- */
+.table-card .ant-table-thead > tr > th {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 10 !important;
+  backdrop-filter: blur(12px) !important;
+  background: rgba(15,31,61,0.9) !important;
+  border-bottom: 1px solid rgba(37,99,235,0.15) !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.3px !important;
+  text-transform: uppercase !important;
+  font-size: 11px !important;
+  color: var(--text-muted) !important;
+}
+
+[data-theme="light"] .table-card .ant-table-thead > tr > th {
+  background: rgba(241,245,249,0.95) !important;
+  color: #64748b !important;
+}
+
+.table-card .ant-table-tbody > tr {
+  transition: all 0.25s ease !important;
+}
+
+.table-card .ant-table-tbody > tr:hover > td {
+  background: rgba(37,99,235,0.06) !important;
+  box-shadow: inset 3px 0 0 #2563eb;
+}
+
+[data-theme="light"] .table-card .ant-table-tbody > tr:hover > td {
+  background: rgba(37,99,235,0.04) !important;
+}
+
+/* Row entrance animation */
+.table-card .ant-table-tbody > tr {
+  animation: slideInLeft 0.3s ease-out both;
+}
+
+.table-card .ant-table-tbody > tr:nth-child(1) { animation-delay: 0.02s; }
+.table-card .ant-table-tbody > tr:nth-child(2) { animation-delay: 0.04s; }
+.table-card .ant-table-tbody > tr:nth-child(3) { animation-delay: 0.06s; }
+.table-card .ant-table-tbody > tr:nth-child(4) { animation-delay: 0.08s; }
+.table-card .ant-table-tbody > tr:nth-child(5) { animation-delay: 0.10s; }
+
+/* ---- AI SECTION: Command Center Glow ---- */
+.ai-summary-card,
+.glass-card:has(.ant-statistic) {
+  position: relative;
+}
+
+/* AI ambient glow for insight/summary sections */
+.app-content > .ant-card:nth-child(3),
+.app-content > .ant-card:nth-child(4) {
+  position: relative;
+}
+
+.app-content > .ant-card:nth-child(3)::after,
+.app-content > .ant-card:nth-child(4)::after {
+  content: '';
+  position: absolute;
+  top: -20px; right: -20px;
+  width: 200px; height: 200px;
+  background: radial-gradient(circle, rgba(124,58,237,0.08) 0%, transparent 70%);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 0;
+  animation: ambientBreathe 6s ease-in-out infinite;
+}
+
+/* ---- UPLOAD CARD: Enhanced Dropzone ---- */
+.upload-card {
+  animation: slideInUp 0.5s ease-out both;
+}
+
+.upload-card:hover {
+  border-color: rgba(37,99,235,0.25) !important;
+}
+
+.upload-zone {
+  transition: all 0.3s ease !important;
+}
+
+.upload-zone:hover {
+  border-color: rgba(37,99,235,0.4) !important;
+  background: rgba(37,99,235,0.04) !important;
+  transform: scale(1.005);
+}
+
+/* ---- FILTER CARD: Glass Enhancement ---- */
+.filter-card {
+  animation: slideInUp 0.4s ease-out both;
+  border: 1px solid rgba(37,99,235,0.08) !important;
+}
+
+.filter-card:hover {
+  border-color: rgba(37,99,235,0.15) !important;
+}
+
+/* ---- PREDICTION CARD: AI Processing Effect ---- */
+.prediction-card {
+  animation: slideInUp 0.5s ease-out both;
+  animation-delay: 0.3s;
+}
+
+/* Prediction button glow on hover */
+.predict-btn:hover {
+  box-shadow:
+    0 4px 16px rgba(37,99,235,0.3),
+    0 0 40px rgba(37,99,235,0.1) !important;
+}
+
+/* Result card entrance */
+.result-card {
+  animation: scaleIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both !important;
+}
+
+/* ---- LEADERBOARD: Premium Styling ---- */
+.leaderboard-card {
+  animation: slideInUp 0.5s ease-out both;
+  animation-delay: 0.15s;
+}
+
+.leaderboard-card .leaderboard-row {
+  transition: all 0.3s ease;
+}
+
+.leaderboard-card .leaderboard-row:hover {
+  background: rgba(37,99,235,0.06);
+  transform: translateX(4px);
+}
+
+/* ---- NOTIFICATION: Animated Cards ---- */
+.ant-dropdown .ant-list-item {
+  transition: all 0.25s ease !important;
+  border-radius: 8px !important;
+  margin: 2px 0 !important;
+}
+
+.ant-dropdown .ant-list-item:hover {
+  background: rgba(37,99,235,0.06) !important;
+  transform: translateX(2px);
+}
+
+/* ---- MODAL: Premium Enhancement ---- */
+.ant-modal .ant-modal-content {
+  backdrop-filter: blur(24px) !important;
+  border: 1px solid rgba(37,99,235,0.15) !important;
+  box-shadow:
+    0 24px 80px rgba(0,0,0,0.4),
+    0 0 60px rgba(37,99,235,0.05) !important;
+  border-radius: 20px !important;
+}
+
+.ant-modal .ant-modal-content::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(37,99,235,0.4), rgba(6,182,212,0.3), transparent);
+}
+
+/* Modal entrance */
+.ant-modal {
+  animation: scaleIn 0.3s ease-out !important;
+}
+
+/* ---- SKELETON SHIMMER UPGRADE ---- */
+.ant-skeleton .ant-skeleton-content .ant-skeleton-title,
+.ant-skeleton .ant-skeleton-content .ant-skeleton-paragraph > li {
+  background: linear-gradient(
+    90deg,
+    rgba(255,255,255,0.03) 25%,
+    rgba(37,99,235,0.06) 50%,
+    rgba(255,255,255,0.03) 75%
+  ) !important;
+  background-size: 400% 100% !important;
+  animation: dataFlow 2s ease-in-out infinite !important;
+}
+
+/* ---- PROGRESS CIRCLES: Glow Effect ---- */
+.ant-progress-circle .ant-progress-circle-trail {
+  stroke: rgba(255,255,255,0.04) !important;
+}
+
+.ant-progress-inner {
+  filter: drop-shadow(0 0 6px rgba(37,99,235,0.1));
+}
+
+/* ---- TAGS: Premium Micro-animation ---- */
+.ant-tag {
+  transition: all 0.2s ease !important;
+  border-radius: 6px !important;
+}
+
+.ant-tag:hover {
+  transform: scale(1.04);
+}
+
+/* ---- BUTTONS: Magnetic Hover ---- */
+.ant-btn {
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.ant-btn-primary:hover {
+  box-shadow: 0 4px 16px rgba(37,99,235,0.3) !important;
+  transform: translateY(-1px);
+}
+
+/* ---- BADGE: Pulse Enhancement ---- */
+.ant-badge .ant-badge-count {
+  animation: pulseGlow 2.5s ease-in-out infinite !important;
+  box-shadow: 0 0 8px rgba(239,68,68,0.4) !important;
+}
+
+/* ---- PAGINATION: Smooth ---- */
+.ant-pagination .ant-pagination-item {
+  transition: all 0.2s ease !important;
+  border-radius: 8px !important;
+}
+
+.ant-pagination .ant-pagination-item:hover {
+  transform: scale(1.08);
+  border-color: rgba(37,99,235,0.4) !important;
+}
+
+.ant-pagination .ant-pagination-item-active {
+  background: rgba(37,99,235,0.15) !important;
+  border-color: #2563eb !important;
+  box-shadow: 0 0 12px rgba(37,99,235,0.2) !important;
+}
+
+/* ---- INPUT FIELDS: Glow Focus ---- */
+.ant-input:focus,
+.ant-input-focused,
+.ant-select-focused .ant-select-selector {
+  box-shadow: 0 0 0 2px rgba(37,99,235,0.15), 0 0 16px rgba(37,99,235,0.08) !important;
+  border-color: rgba(37,99,235,0.4) !important;
+}
+
+/* ---- SEGMENTED CONTROL: Premium ---- */
+.ant-segmented {
+  border-radius: 12px !important;
+  background: rgba(255,255,255,0.04) !important;
+  border: 1px solid rgba(255,255,255,0.06) !important;
+}
+
+.ant-segmented .ant-segmented-item-selected {
+  background: rgba(37,99,235,0.15) !important;
+  box-shadow: 0 2px 8px rgba(37,99,235,0.2) !important;
+  border-radius: 10px !important;
+}
+
+/* ---- SCROLLBAR: Custom Futuristic ---- */
+::-webkit-scrollbar {
+  width: 5px !important;
+  height: 5px !important;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(15,23,42,0.2) !important;
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, rgba(37,99,235,0.3), rgba(124,58,237,0.3)) !important;
+  border-radius: 4px !important;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, rgba(37,99,235,0.5), rgba(124,58,237,0.5)) !important;
+}
+
+/* ---- SWITCH: Premium ---- */
+.ant-switch-checked {
+  background: linear-gradient(135deg, #2563eb, #7c3aed) !important;
+  box-shadow: 0 2px 8px rgba(37,99,235,0.3) !important;
+}
+
+/* ---- DIVIDER: Subtle Gradient ---- */
+.ant-divider {
+  border-color: transparent !important;
+  background: linear-gradient(90deg, transparent, rgba(37,99,235,0.15), transparent) !important;
+  height: 1px !important;
+}
+
+/* ---- TOOLTIP: Glass ---- */
+.ant-tooltip .ant-tooltip-inner {
+  backdrop-filter: blur(16px) !important;
+  background: rgba(15,23,42,0.9) !important;
+  border: 1px solid rgba(37,99,235,0.15) !important;
+  border-radius: 10px !important;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.3) !important;
+}
+
+/* ---- STAGGERED SECTION ENTRANCES ---- */
+.app-content > .ant-card:nth-child(1),
+.app-content > .ant-row:nth-child(1) { animation: slideInUp 0.4s ease-out 0.0s both; }
+.app-content > .ant-card:nth-child(2),
+.app-content > .ant-row:nth-child(2) { animation: slideInUp 0.4s ease-out 0.06s both; }
+.app-content > .ant-card:nth-child(3),
+.app-content > .ant-row:nth-child(3) { animation: slideInUp 0.4s ease-out 0.12s both; }
+.app-content > .ant-card:nth-child(4),
+.app-content > .ant-row:nth-child(4) { animation: slideInUp 0.4s ease-out 0.18s both; }
+.app-content > .ant-card:nth-child(5),
+.app-content > .ant-row:nth-child(5) { animation: slideInUp 0.4s ease-out 0.24s both; }
+.app-content > .ant-card:nth-child(6),
+.app-content > .ant-row:nth-child(6) { animation: slideInUp 0.4s ease-out 0.30s both; }
+.app-content > .ant-card:nth-child(7),
+.app-content > .ant-row:nth-child(7) { animation: slideInUp 0.4s ease-out 0.36s both; }
+.app-content > .ant-card:nth-child(8),
+.app-content > .ant-row:nth-child(8) { animation: slideInUp 0.4s ease-out 0.42s both; }
+
+/* ---- RESPONSIVE: Mobile Glass ---- */
+@media (max-width: 768px) {
+  .app-header {
+    padding: 12px 16px !important;
+  }
+
+  .glass-card {
+    border-radius: 12px !important;
+  }
+
+  .exec-kpi-hover:hover {
+    transform: translateY(-2px) scale(1.01) !important;
+  }
+
+  body::after {
+    display: none;
+  }
+
+  .app-content::before {
+    display: none;
+  }
+}
+
+/* ---- LIGHT MODE: Glass Adjustments ---- */
+[data-theme="light"] .glass-card {
+  background: rgba(255,255,255,0.7) !important;
+  border-color: rgba(37,99,235,0.08) !important;
+  box-shadow:
+    0 4px 6px rgba(0,0,0,0.03),
+    0 12px 40px rgba(0,0,0,0.06),
+    inset 0 1px 0 rgba(255,255,255,0.8) !important;
+}
+
+[data-theme="light"] .glass-card:hover {
+  box-shadow:
+    0 8px 24px rgba(0,0,0,0.08),
+    0 0 40px rgba(37,99,235,0.03),
+    inset 0 1px 0 rgba(255,255,255,0.9) !important;
+}
+
+[data-theme="light"] .kpi-card .ant-statistic-title {
+  color: #64748b !important;
+}
+
+[data-theme="light"] .app-content::before {
+  background:
+    radial-gradient(600px circle at 20% 20%, rgba(37,99,235,0.03), transparent 50%),
+    radial-gradient(600px circle at 80% 80%, rgba(124,58,237,0.02), transparent 50%);
+}
+
+[data-theme="light"] .ant-segmented {
+  background: rgba(0,0,0,0.03) !important;
+  border: 1px solid rgba(0,0,0,0.06) !important;
+}
+
+[data-theme="light"] .ant-segmented .ant-segmented-item-selected {
+  background: rgba(37,99,235,0.08) !important;
+}
+
+/* ---- PERFORMANCE: Reduce motion for accessibility ---- */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ---- COPILOT CHAT: Enterprise AI Assistant ---- */
+.copilot-fab {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  box-shadow:
+    0 4px 16px rgba(37,99,235,0.3),
+    0 0 40px rgba(37,99,235,0.1) !important;
+}
+
+.copilot-fab:hover {
+  transform: scale(1.12) !important;
+  box-shadow:
+    0 8px 32px rgba(37,99,235,0.4),
+    0 0 60px rgba(37,99,235,0.15) !important;
+}
+
+.copilot-panel {
+  backdrop-filter: blur(24px) saturate(180%) !important;
+  border: 1px solid rgba(37,99,235,0.12) !important;
+  border-radius: 20px !important;
+  box-shadow:
+    0 24px 80px rgba(0,0,0,0.4),
+    0 0 60px rgba(37,99,235,0.05) !important;
+  animation: scaleIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) both !important;
+}
+
+.copilot-panel::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(37,99,235,0.4), rgba(6,182,212,0.3), transparent);
+  border-radius: 20px 20px 0 0;
+}
+
+/* Message bubbles */
+.copilot-msg-user {
+  animation: slideInLeft 0.3s ease-out both;
+}
+
+.copilot-msg-ai {
+  animation: slideInUp 0.3s ease-out both;
+}
+
+/* Suggestion chips glow */
+.copilot-chip {
+  transition: all 0.25s ease !important;
+}
+
+.copilot-chip:hover {
+  background: rgba(37,99,235,0.12) !important;
+  border-color: rgba(37,99,235,0.3) !important;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(37,99,235,0.15) !important;
+}
+
+/* ---- EMPTY STATES: Premium ---- */
+.ant-empty-description {
+  color: var(--text-muted) !important;
+}
+
+.ant-empty-image svg {
+  opacity: 0.3;
+}
+
+/* ---- CARD TITLE: Gradient Text ---- */
+.glass-card .ant-card-head-title {
+  background: linear-gradient(135deg, var(--text-primary) 0%, #93c5fd 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-weight: 600 !important;
+}
+
+[data-theme="light"] .glass-card .ant-card-head-title {
+  background: linear-gradient(135deg, #0f172a 0%, #2563eb 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ---- SELECTION COLOR ---- */
+::selection {
+  background: rgba(37,99,235,0.3);
+  color: #ffffff;
+}
+
+/* ---- FOCUS VISIBLE: Accessible Glow ---- */
+*:focus-visible {
+  outline: 2px solid rgba(37,99,235,0.5) !important;
+  outline-offset: 2px !important;
+  border-radius: 4px;
+}
+
+/* ---- DROPDOWN: Glass ---- */
+.ant-dropdown .ant-dropdown-menu {
+  backdrop-filter: blur(20px) !important;
+  border: 1px solid rgba(37,99,235,0.1) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 16px 48px rgba(0,0,0,0.3) !important;
+}
+
+/* ---- SETTINGS/PROFILE PAGE: Premium Cards ---- */
+.settings-card,
+.profile-card {
+  animation: slideInUp 0.4s ease-out both;
+}
+
+.settings-card:hover,
+.profile-card:hover {
+  border-color: rgba(37,99,235,0.2) !important;
+}
+
+/* ---- NOTIFICATION POPUP: Glass ---- */
+.ant-notification .ant-notification-notice {
+  backdrop-filter: blur(16px) !important;
+  background: rgba(15,23,42,0.9) !important;
+  border: 1px solid rgba(37,99,235,0.12) !important;
+  border-radius: 14px !important;
+  box-shadow: 0 16px 48px rgba(0,0,0,0.3) !important;
+  animation: slideInUp 0.3s ease-out both !important;
+}
+
+[data-theme="light"] .ant-notification .ant-notification-notice {
+  background: rgba(255,255,255,0.9) !important;
+  border: 1px solid rgba(0,0,0,0.06) !important;
+}
