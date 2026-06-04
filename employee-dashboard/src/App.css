@@ -2352,4 +2352,109 @@ body,
   .settings-btn {
     width: 100%;
   }
+}/* ENTERPRISE ENHANCEMENTS — Animations & Micro-interactions */
+
+/* ---- Fade In Up Animation ---- */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
 }
+
+/* ---- Shimmer Effect ---- */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* ---- Pulse Glow ---- */
+@keyframes pulseGlow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(139,92,246,0.2); }
+  50% { box-shadow: 0 0 16px 4px rgba(139,92,246,0.15); }
+}
+
+/* ---- Card hover effects ---- */
+.glass-card {
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease !important;
+}
+
+.glass-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 32px rgba(139,92,246,0.08), 0 4px 16px rgba(0,0,0,0.2) !important;
+  border-color: rgba(139,92,246,0.2) !important;
+}
+
+/* ---- KPI card hover ---- */
+.kpi-card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease !important;
+}
+
+.kpi-card:hover {
+  transform: translateY(-3px) scale(1.01);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.3) !important;
+}
+
+/* ---- Executive KPI hover ---- */
+.exec-kpi-hover {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.exec-kpi-hover:hover {
+  transform: translateY(-3px) scale(1.02);
+  box-shadow: 0 12px 40px rgba(139,92,246,0.12), 0 4px 16px rgba(0,0,0,0.3);
+}
+
+/* ---- Nav button hover glow ---- */
+.header-nav-btn {
+  transition: all 0.2s ease !important;
+}
+
+.header-nav-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(139,92,246,0.2);
+}
+
+/* ---- Table row hover ---- */
+.ant-table-tbody > tr.ant-table-row:hover > td {
+  transition: background 0.2s ease;
+}
+
+/* ---- Fade in animation for content sections ---- */
+.app-content > .ant-card,
+.app-content > .ant-row {
+  animation: fadeInUp 0.4s ease-out both;
+}
+
+.app-content > .ant-card:nth-child(2) { animation-delay: 0.05s; }
+.app-content > .ant-card:nth-child(3) { animation-delay: 0.1s; }
+.app-content > .ant-card:nth-child(4) { animation-delay: 0.15s; }
+.app-content > .ant-row:nth-child(2) { animation-delay: 0.05s; }
+.app-content > .ant-row:nth-child(3) { animation-delay: 0.1s; }
+
+/* ---- Progress circle animation ---- */
+.ant-progress-circle {
+  transition: stroke-dashoffset 0.6s ease !important;
+}
+
+/* ---- Badge pulse ---- */
+.ant-badge .ant-badge-count {
+  animation: pulseGlow 2s infinite;
+}
+
+/* ---- Smooth scrollbar ---- */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(15,23,42,0.3);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(139,92,246,0.3);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(139,92,246,0.5);
+}
+

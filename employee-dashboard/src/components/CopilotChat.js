@@ -10,6 +10,8 @@ const EXAMPLE_CHIPS = [
   'Top performers',
   'Overtime report',
   'Department analysis',
+  'Productivity forecast',
+  'Executive summary',
 ];
 
 const CopilotChat = () => {

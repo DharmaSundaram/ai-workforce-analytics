@@ -1799,6 +1799,24 @@ def upload_dataset():
             "burnout_dist":   burnout_counts
         })
 
+        # --- Notification hooks ---
+        try:
+            create_notification("upload", f"Dataset uploaded: {total} records",
+                f"Files: {', '.join(file_names)}", "success")
+            if high_burnout_count > 0:
+                create_notification("burnout_alert",
+                    f"⚠️ {high_burnout_count} employees at high burnout risk",
+                    "Review workload distribution immediately.", "warning")
+            low_prod_count = sum(1 for e in employees if e['productivity'] < 40)
+            if low_prod_count > 0:
+                create_notification("productivity_alert",
+                    f"📉 {low_prod_count} employees below 40% productivity",
+                    "Training or support may be needed.", "warning")
+        except Exception as notif_err:
+            print(f"[NOTIFICATION HOOK] {notif_err}")
+
+        return response
+
     except Exception as e:
         import traceback
         tb = traceback.format_exc()
@@ -1905,9 +1923,15 @@ def trigger_sync():
         last_sync_info["time"] = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
         last_sync_info["records"] = count or 0
         last_sync_info["status"] = "completed"
+        try:
+            create_notification("jira_sync", f"Jira sync completed: {count or 0} records", "", "success")
+        except: pass
         return jsonify({"success": True, "message": f"Sync completed. {count or 0} records processed."})
     except Exception as e:
         last_sync_info["status"] = "error"
+        try:
+            create_notification("jira_sync", "Jira sync failed", str(e), "error")
+        except: pass
         return jsonify({"success": False, "error": str(e)})
 # =========================================
 # NOTIFICATION MODEL
@@ -2328,6 +2352,50 @@ def executive_report():
     except Exception as e:
         print(f"[EXECUTIVE REPORT ERROR] {e}")
         return jsonify({"success": False, "error": str(e)})
+
+
+# =========================================
+# SYSTEM HEALTH CHECK
+# =========================================
+
+@app.route("/api/system-health", methods=["GET"])
+def system_health():
+    """Real-time system health status."""
+    health = {}
+
+    # Backend
+    health["backend"] = {"status": "connected", "ok": True}
+
+    # Database
+    try:
+        db.session.execute(db.text("SELECT 1"))
+        health["database"] = {"status": "connected", "ok": True}
+    except Exception as e:
+        health["database"] = {"status": f"error: {e}", "ok": False}
+
+    # ML Models
+    import os
+    models_ok = os.path.exists("productivity_model.pkl") or os.path.exists("burnout_model.pkl")
+    health["ml_model"] = {"status": "active" if models_ok else "no models found", "ok": models_ok}
+
+    # Jira
+    try:
+        creds = get_jira_credentials()
+        jira_ok = bool(creds.get("url") and creds.get("email") and creds.get("token"))
+        health["jira"] = {"status": "configured" if jira_ok else "not configured", "ok": jira_ok}
+    except:
+        health["jira"] = {"status": "not configured", "ok": False}
+
+    # Scheduler
+    try:
+        from scheduler import scheduler
+        running = scheduler.running if hasattr(scheduler, 'running') else False
+        health["scheduler"] = {"status": "running" if running else "idle", "ok": True}
+    except:
+        health["scheduler"] = {"status": "available", "ok": True}
+
+    all_ok = all(v["ok"] for v in health.values())
+    return jsonify({"success": True, "healthy": all_ok, "services": health})
 
 
 # =========================================

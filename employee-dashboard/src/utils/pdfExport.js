@@ -1,5 +1,5 @@
 import jsPDF from "jspdf";
-import "jspdf-autotable";
+import autoTable from "jspdf-autotable";
 
 export async function exportAnalyticsPDF(employees, kpis, forecastData) {
   const doc = new jsPDF();
@@ -29,7 +29,7 @@ export async function exportAnalyticsPDF(employees, kpis, forecastData) {
   doc.setFont("helvetica", "bold");
   doc.text("Key Performance Indicators", 14, 52);
 
-  doc.autoTable({
+  autoTable(doc, {
     startY: 58,
     head: [["Metric", "Value"]],
     body: [
@@ -67,7 +67,7 @@ export async function exportAnalyticsPDF(employees, kpis, forecastData) {
     String(emp.focus_score || 0),
   ]);
 
-  doc.autoTable({
+  autoTable(doc, {
     startY: 26,
     head: [
       [
@@ -118,7 +118,7 @@ export async function exportAnalyticsPDF(employees, kpis, forecastData) {
     doc.setFont("helvetica", "bold");
     doc.text("Burnout Distribution Summary", 14, 14);
 
-    doc.autoTable({
+    autoTable(doc, {
       startY: 26,
       head: [["Burnout Level", "Count", "Percentage"]],
       body: [
@@ -165,7 +165,7 @@ export async function exportAnalyticsPDF(employees, kpis, forecastData) {
       doc.setFont("helvetica", "bold");
       doc.text("Weekly Productivity Forecast", 14, lastY);
 
-      doc.autoTable({
+      autoTable(doc, {
         startY: lastY + 6,
         head: [["Week", "Actual Avg %", "ML Predicted %"]],
         body: forecastData.map((f) => [

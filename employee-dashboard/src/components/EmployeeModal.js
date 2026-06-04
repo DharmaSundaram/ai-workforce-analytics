@@ -4,7 +4,6 @@ import {
   UserOutlined,
   ProjectOutlined,
   FileTextOutlined,
-  FireOutlined,
   ClockCircleOutlined,
   ThunderboltOutlined,
   RiseOutlined,
@@ -66,6 +65,29 @@ function EmployeeModal({ visible, employee, onClose, employeeHistory }) {
       h.employee_name.toLowerCase() === (employee.employee_name || "").toLowerCase()
   );
 
+  // AI Summary generation
+  const getRiskLevel = () => {
+    if (burnout === "High" && prod < 50) return { level: "Critical", color: "#ef4444" };
+    if (burnout === "High" || prod < 40) return { level: "High", color: "#f59e0b" };
+    if (burnout === "Medium" || prod < 60) return { level: "Moderate", color: "#3b82f6" };
+    return { level: "Low", color: "#10b981" };
+  };
+  const risk = getRiskLevel();
+
+  const aiSummaryText = (() => {
+    const parts = [];
+    if (prod >= 80) parts.push(`${employee.employee_name} is a top performer with ${prod}% productivity.`);
+    else if (prod >= 60) parts.push(`${employee.employee_name} shows solid performance at ${prod}%.`);
+    else if (prod >= 40) parts.push(`${employee.employee_name} has moderate productivity at ${prod}% — improvement possible.`);
+    else parts.push(`${employee.employee_name} needs attention with ${prod}% productivity.`);
+    if (burnout === "High") parts.push("High burnout risk detected — workload reduction recommended.");
+    else if (burnout === "Medium") parts.push("Moderate burnout indicators present — monitor closely.");
+    if (Number(employee.overtime_hours) > 2) parts.push(`Working ${employee.overtime_hours}h overtime — consider rebalancing.`);
+    if (predicted > prod + 10) parts.push(`ML model predicts improvement to ${predicted}%.`);
+    else if (predicted < prod - 10) parts.push(`ML model forecasts a decline to ${predicted}%.`);
+    return parts.join(" ");
+  })();
+
   return (
     <Modal
       open={visible}
@@ -114,39 +136,68 @@ function EmployeeModal({ visible, employee, onClose, employeeHistory }) {
 
         <Divider style={{ borderColor: "rgba(255,255,255,0.08)", margin: "16px 0" }} />
 
-        {/* Performance Metrics */}
+        {/* Risk Level + AI Summary */}
+        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
+          <Tag
+            style={{
+              background: `${risk.color}22`,
+              border: `1px solid ${risk.color}55`,
+              color: risk.color,
+              borderRadius: 8,
+              padding: "4px 14px",
+              fontSize: 13,
+              fontWeight: 600,
+            }}
+          >
+            Risk: {risk.level}
+          </Tag>
+          <span style={{ color: "#94a3b8", fontSize: 12 }}>AI Assessment</span>
+        </div>
+        <div
+          style={{
+            background: "rgba(139,92,246,0.06)",
+            border: "1px solid rgba(139,92,246,0.12)",
+            borderRadius: 10,
+            padding: "12px 16px",
+            marginBottom: 20,
+            color: "#cbd5e1",
+            fontSize: 13,
+            lineHeight: 1.6,
+          }}
+        >
+          <BulbOutlined style={{ color: "#a78bfa", marginRight: 8 }} />
+          {aiSummaryText}
+        </div>
+
+        {/* Performance Metrics — Circular Gauges */}
         <h3 className="modal-section-title">
           <RiseOutlined style={{ marginRight: 8, color: "#10b981" }} />
           Performance Metrics
         </h3>
         <Row gutter={[16, 16]} style={{ marginBottom: 20 }}>
           <Col span={12}>
-            <div className="modal-metric-card">
+            <div className="modal-metric-card" style={{ textAlign: "center" }}>
               <div className="modal-metric-label">Actual Productivity</div>
-              <div className="modal-metric-value" style={{ color: getProdColor(prod) }}>
-                {prod}%
-              </div>
               <Progress
+                type="circle"
                 percent={prod}
-                showInfo={false}
+                size={90}
                 strokeColor={getProdColor(prod)}
                 trailColor="rgba(255,255,255,0.08)"
-                size="small"
+                format={(p) => <span style={{ color: getProdColor(prod), fontSize: 18, fontWeight: 700 }}>{p}%</span>}
               />
             </div>
           </Col>
           <Col span={12}>
-            <div className="modal-metric-card">
+            <div className="modal-metric-card" style={{ textAlign: "center" }}>
               <div className="modal-metric-label">ML Predicted</div>
-              <div className="modal-metric-value" style={{ color: "#a78bfa" }}>
-                {predicted}%
-              </div>
               <Progress
+                type="circle"
                 percent={predicted}
-                showInfo={false}
+                size={90}
                 strokeColor="#a78bfa"
                 trailColor="rgba(255,255,255,0.08)"
-                size="small"
+                format={(p) => <span style={{ color: "#a78bfa", fontSize: 18, fontWeight: 700 }}>{p}%</span>}
               />
             </div>
           </Col>

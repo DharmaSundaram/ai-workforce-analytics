@@ -104,7 +104,16 @@ function NotificationBell() {
           <div style={{ maxHeight: 360, overflowY: "auto", padding: "4px 0" }}>
             {notifications.length === 0 ? (
               <Empty
-                description={<span style={{ color: "#64748b" }}>No notifications</span>}
+                description={
+                  <div style={{ textAlign: "center" }}>
+                    <div style={{ color: "#94a3b8", fontSize: 14, fontWeight: 500, marginBottom: 4 }}>
+                      You're all caught up!
+                    </div>
+                    <div style={{ color: "#475569", fontSize: 12 }}>
+                      No new notifications available.
+                    </div>
+                  </div>
+                }
                 image={Empty.PRESENTED_IMAGE_SIMPLE}
                 style={{ padding: 40 }}
               />

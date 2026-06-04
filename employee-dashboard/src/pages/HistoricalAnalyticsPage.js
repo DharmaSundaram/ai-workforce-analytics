@@ -9,6 +9,7 @@ import {
   Spin,
   Empty,
   Statistic,
+  Tag,
   notification,
 } from "antd";
 import {
@@ -17,7 +18,9 @@ import {
   FireOutlined,
   ClockCircleOutlined,
   RiseOutlined,
+  FallOutlined,
   TeamOutlined,
+  BulbOutlined,
 } from "@ant-design/icons";
 import {
   AreaChart,
@@ -75,6 +78,33 @@ function HistoricalAnalyticsPage() {
   const burnoutData = trends.burnout || [];
   const hoursData = trends.hours || [];
 
+  // Compute growth %
+  const prodGrowth = prodData.length >= 2
+    ? ((prodData[prodData.length - 1].avg_productivity - prodData[0].avg_productivity) / (prodData[0].avg_productivity || 1) * 100).toFixed(1)
+    : null;
+  const hoursGrowth = hoursData.length >= 2
+    ? ((hoursData[hoursData.length - 1].avg_hours - hoursData[0].avg_hours) / (hoursData[0].avg_hours || 1) * 100).toFixed(1)
+    : null;
+
+  // AI Trend Summary
+  const trendInsights = [];
+  if (prodData.length >= 2) {
+    const first = prodData[0].avg_productivity;
+    const last = prodData[prodData.length - 1].avg_productivity;
+    if (last > first) trendInsights.push({ severity: "success", text: `Productivity improved from ${first}% to ${last}% over this period.` });
+    else if (last < first) trendInsights.push({ severity: "danger", text: `Productivity declined from ${first}% to ${last}% — investigate root causes.` });
+    else trendInsights.push({ severity: "info", text: `Productivity remained stable at ${last}%.` });
+  }
+  if (burnoutData.length > 0) {
+    const lastBurnout = burnoutData[burnoutData.length - 1];
+    if (lastBurnout.high > 0) trendInsights.push({ severity: "warning", text: `${lastBurnout.high} employees at high burnout risk in latest data point.` });
+    else trendInsights.push({ severity: "success", text: "No high burnout risk detected in latest data point." });
+  }
+  if (hoursData.length >= 2) {
+    const lastOT = hoursData[hoursData.length - 1].avg_overtime;
+    if (lastOT > 1) trendInsights.push({ severity: "warning", text: `Average overtime is ${lastOT}h — consider workload rebalancing.` });
+  }
+
   return (
     <Layout className="app-layout">
       {contextHolder}
@@ -127,6 +157,15 @@ function HistoricalAnalyticsPage() {
                       valueStyle={{ color: "#10b981", fontSize: 32 }}
                       prefix={<RiseOutlined />}
                     />
+                    {prodGrowth !== null && (
+                      <Tag
+                        color={Number(prodGrowth) >= 0 ? "green" : "red"}
+                        style={{ marginTop: 8, fontSize: 12 }}
+                      >
+                        {Number(prodGrowth) >= 0 ? <RiseOutlined /> : <FallOutlined />}
+                        {' '}{Number(prodGrowth) >= 0 ? '+' : ''}{prodGrowth}% vs start
+                      </Tag>
+                    )}
                   </Card>
                 </Col>
                 <Col xs={24} md={8}>
@@ -148,6 +187,14 @@ function HistoricalAnalyticsPage() {
                       valueStyle={{ color: "#a78bfa", fontSize: 32 }}
                       prefix={<TeamOutlined />}
                     />
+                    {hoursGrowth !== null && (
+                      <Tag
+                        color={Number(hoursGrowth) <= 0 ? "green" : "orange"}
+                        style={{ marginTop: 8, fontSize: 12 }}
+                      >
+                        <ClockCircleOutlined /> Hours {Number(hoursGrowth) >= 0 ? '+' : ''}{hoursGrowth}%
+                      </Tag>
+                    )}
                   </Card>
                 </Col>
               </Row>
@@ -213,6 +260,25 @@ function HistoricalAnalyticsPage() {
                   </LineChart>
                 </ResponsiveContainer>
               </Card>
+
+              {/* AI Trend Summary */}
+              {trendInsights.length > 0 && (
+                <Card className="glass-card" bordered={false} style={{ marginBottom: 24 }}>
+                  <h3 style={{ color: "#e2e8f0", marginBottom: 16 }}>
+                    <BulbOutlined style={{ marginRight: 8, color: "#a78bfa" }} />
+                    AI Trend Summary
+                  </h3>
+                  {trendInsights.map((insight, idx) => {
+                    const dotColor = insight.severity === "success" ? "#10b981" : insight.severity === "warning" ? "#f59e0b" : insight.severity === "danger" ? "#ef4444" : "#3b82f6";
+                    return (
+                      <div key={idx} style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "8px 0", borderBottom: idx < trendInsights.length - 1 ? "1px solid rgba(255,255,255,0.04)" : "none" }}>
+                        <span style={{ width: 8, height: 8, borderRadius: "50%", background: dotColor, marginTop: 6, flexShrink: 0 }} />
+                        <span style={{ color: "#e2e8f0", fontSize: 13, lineHeight: 1.6 }}>{insight.text}</span>
+                      </div>
+                    );
+                  })}
+                </Card>
+              )}
             </>
           )}
         </Spin>

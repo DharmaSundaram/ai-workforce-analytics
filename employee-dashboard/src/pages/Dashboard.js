@@ -5,6 +5,11 @@ import { useTheme } from "../context/ThemeContext";
 import EmployeeModal from "../components/EmployeeModal";
 import NotificationBell from "../components/NotificationBell";
 import CopilotChat from "../components/CopilotChat";
+import ExecutiveKPIs from "../components/ExecutiveKPIs";
+import AIStrategicInsights from "../components/AIStrategicInsights";
+import SystemHealthWidget from "../components/SystemHealthWidget";
+import DepartmentRanking from "../components/DepartmentRanking";
+import ExecutiveReportButton from "../components/ExecutiveReportButton";
 import { SkeletonKPIs, SkeletonCharts, SkeletonTable } from "../components/SkeletonCards";
 import { exportAnalyticsPDF } from "../utils/pdfExport";
 import "../App.css";
@@ -958,6 +963,9 @@ function Dashboard() {
           {/* Notification Bell */}
           <NotificationBell />
 
+          {/* Executive Report */}
+          <ExecutiveReportButton />
+
           {/* Logout */}
           <Button
             icon={<LogoutOutlined />}
@@ -1184,6 +1192,11 @@ function Dashboard() {
           </Card>
         )}
 
+        {/* ===== AI STRATEGIC INSIGHTS ===== */}
+        {hasUploaded && employees.length > 0 && (
+          <AIStrategicInsights employees={filteredEmployees} aiSummary={aiSummary} />
+        )}
+
         {/* ===== ANALYTICS ROW: Trend + Feature Importance + Jira Insights ===== */}
         {hasUploaded && employees.length > 0 && (
           <Row gutter={[20, 20]} style={{ marginBottom: 24 }}>
@@ -1348,6 +1361,14 @@ function Dashboard() {
               </Card>
             </Col>
           </Row>
+        )}
+
+        {/* ===== EXECUTIVE KPIs ===== */}
+        {hasUploaded && employees.length > 0 && (
+          <ExecutiveKPIs
+            employees={filteredEmployees}
+            previousAvgProductivity={aiSummary?.avg_productivity || 0}
+          />
         )}
 
         {/* ===== CHARTS ROW 1: Existing Pie + Line + Leaderboard/Accuracy ===== */}
@@ -1831,6 +1852,18 @@ function Dashboard() {
                   </BarChart>
                 </ResponsiveContainer>
               </Card>
+            </Col>
+          </Row>
+        )}
+
+        {/* ===== SYSTEM HEALTH + DEPARTMENT RANKING ===== */}
+        {hasUploaded && employees.length > 0 && (
+          <Row gutter={[20, 20]} style={{ marginBottom: 24 }}>
+            <Col xs={24} lg={8}>
+              <SystemHealthWidget />
+            </Col>
+            <Col xs={24} lg={16}>
+              <DepartmentRanking employees={filteredEmployees} />
             </Col>
           </Row>
         )}
