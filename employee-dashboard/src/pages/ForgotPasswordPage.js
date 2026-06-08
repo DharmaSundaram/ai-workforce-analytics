@@ -1,9 +1,9 @@
 import React, { useState } from "react";
+import { API_BASE_URL as BACKEND_URL } from '../services/api';
 import { useNavigate } from "react-router-dom";
 import { Input, Button, notification } from "antd";
 
 
-const BACKEND_URL = "http://127.0.0.1:5000";
 
 function ForgotPasswordPage() {
   const [step, setStep] = useState(1);

@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback } from "react";
+import { API_BASE_URL as BACKEND_URL } from '../services/api';
 import { Card } from "antd";
 
 
-const BACKEND_URL = "http://127.0.0.1:5000";
 
 const SERVICE_LABELS = {
   backend: "Backend",

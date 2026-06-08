@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { API_BASE_URL as BACKEND_URL } from '../services/api';
 import { useNavigate } from "react-router-dom";
 import {
   Layout,
@@ -17,7 +18,6 @@ import "../App.css";
 
 const { Header, Content } = Layout;
 
-const BACKEND_URL = "http://127.0.0.1:5000";
 
 function ProfilePage() {
   const navigate = useNavigate();

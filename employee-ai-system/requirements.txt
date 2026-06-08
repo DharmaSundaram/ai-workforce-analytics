@@ -1,0 +1,15 @@
+apscheduler
+bcrypt
+cryptography
+flask
+flask-cors
+flask-jwt-extended
+flask-sqlalchemy
+jira
+numpy
+openpyxl
+pandas
+python-dotenv
+scikit-learn
+werkzeug
+

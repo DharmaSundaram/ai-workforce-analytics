@@ -1,11 +1,11 @@
 import React, { useState } from "react";
+import { API_BASE_URL as BACKEND_URL } from '../services/api';
 import { useNavigate } from "react-router-dom";
 import AILogo from '../components/AILogo';
 import { Input, Button, notification, Checkbox } from "antd";
 import { motion } from "framer-motion";
 
 
-const BACKEND_URL = "http://127.0.0.1:5000";
 
 function LoginPage() {
   const [username, setUsername] = useState("");

@@ -1,213 +1,161 @@
 # AI Workforce Analytics Dashboard
 
-An AI-powered workforce monitoring and employee burnout prediction dashboard built using React.js, Flask, Python, and Machine Learning.
+Enterprise full-stack system for employee analytics, burnout prediction, productivity prediction, Jira integration, multi-project sync, reports, exports, settings, audit logs, notifications, AI assistant workflows, and theme support.
 
----
+## Project Overview
 
-# Project Overview
+The project is split into two applications:
 
-The AI Workforce Analytics Dashboard helps organizations monitor employee productivity, overtime, wellness, and burnout risk using AI and data analytics.
+- `employee-ai-system`: Flask backend, database access, security, Jira sync, scheduler, ML prediction, reporting, and API endpoints.
+- `employee-dashboard`: React dashboard, authentication screens, analytics pages, reports, settings, audit logs, notifications, theme context, and reusable UI components.
 
-The system allows users to upload employee datasets, visualize workforce insights, and predict burnout levels using machine learning models.
+Existing runtime behavior is preserved: backend still starts from `employee-ai-system/app.py`, and the dashboard still starts from `employee-dashboard/src/App.js`.
 
----
-
-# Features
-
-## Dashboard Analytics
-- Total Employees KPI
-- High Burnout Employee Count
-- Average Productivity Score
-- Overtime Employee Statistics
-
-## Data Visualization
-- Burnout Distribution Pie Chart
-- Productivity Analytics Graph
-- Interactive Employee Table
-
-## AI-Based Burnout Prediction
-Predict employee burnout risk using:
-- Working hours
-- Idle time
-- Overtime hours
-- Break count
-- Tasks completed
-- Focus score
-- Manager rating
-- Weekly targets
-
-## Smart Insights
-- AI-generated workforce insights
-- Burnout recommendations
-- Employee wellness suggestions
-
-## Data Management
-- CSV Dataset Upload
-- Employee Search & Filters
-- Department-wise Filtering
-- Burnout-level Filtering
-
-## Report Generation
-- Export CSV Reports
-- Export PDF Reports
-- Prediction History Tracking
-
----
-
-# Technologies Used
-
-## Frontend
-- React.js
-- CSS
-- Recharts
-
-## Backend
-- Flask
-- Flask-CORS
-
-## Machine Learning
-- Python
-- Pandas
-- Scikit-learn
-- Random Forest Classifier
-
-## Tools
-- VS Code
-- GitHub
-- npm
-
----
-
-# Project Architecture
+## Architecture Diagram
 
 ```text
-Frontend (React)
-        ↓
-REST API (Flask)
-        ↓
-Machine Learning Model
-        ↓
-Prediction Result
+User
+ |
+ v
+React Dashboard
+ |
+ v
+Central API Service
+ |
+ v
+Flask API Routes
+ |
+ +--> Auth / Security
+ +--> Employee Analytics
+ +--> Burnout + Productivity ML
+ +--> Jira Service + Scheduler
+ +--> Reports / Audit / Notifications
+ |
+ v
+SQLAlchemy Database
 ```
 
----
+## Folder Structure
 
-# Dataset Features
+```text
+employee-ai-system/
+  app.py
+  api/
+  config/
+  database/
+  ml/
+  scheduler/
+  security/
+  services/
+  utils/
+  logs/
+  tests/
 
-The dataset contains:
+employee-dashboard/src/
+  assets/
+  components/
+  context/
+  hooks/
+  pages/
+  routes/
+  services/
+  styles/
+  utils/
+  App.js
+  index.js
+```
 
-| Feature | Description |
-|---|---|
-| total_hours | Total working hours |
-| idle_time_minutes | Employee idle time |
-| overtime_hours | Overtime work duration |
-| break_count | Number of breaks |
-| meeting_hours | Meeting duration |
-| tasks_completed | Completed tasks |
-| bugs_fixed | Fixed bugs/tasks |
-| focus_score | Productivity focus score |
-| weekly_target | Weekly target assigned |
-| target_completed | Completed targets |
-| manager_rating | Manager evaluation score |
+## Installation Steps
 
----
-
-# Machine Learning Model
-
-The burnout prediction system uses a Random Forest Classifier trained on employee productivity and wellness data.
-
-### Burnout Levels
-- Low
-- Medium
-- High
-
----
-
-# Screenshots
-
-## Dashboard
-(Add dashboard screenshot here)
-
-## Burnout Prediction
-(Add prediction screenshot here)
-
-## Export Report
-(Add export report screenshot here)
-
----
-
-# Installation Guide
-
-## Backend Setup
+Backend:
 
 ```bash
-cd backend
+cd employee-ai-system
+python -m venv .venv
+.venv\Scripts\activate
 pip install -r requirements.txt
 python app.py
 ```
 
-Backend runs on:
-```bash
-http://127.0.0.1:5000
-```
-
----
-
-## Frontend Setup
+Frontend:
 
 ```bash
-cd frontend
+cd employee-dashboard
 npm install
 npm start
 ```
 
-Frontend runs on:
-```bash
-http://localhost:3000
+Backend runs on `http://127.0.0.1:5000`. Frontend runs on `http://localhost:3000`.
+
+## Environment Variables
+
+Backend `.env`:
+
+```env
+SECRET_KEY=change-me
+JWT_SECRET_KEY=change-me-too
+CORS_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
+DATABASE_URL=sqlite:///employee_data.db
+JIRA_URL=https://your-domain.atlassian.net
+JIRA_EMAIL=you@example.com
+JIRA_API_TOKEN=your-token
+JIRA_PROJECT_KEY=PROJECT
+JIRA_ENCRYPTION_KEY=
 ```
 
----
+Frontend `.env`:
 
-# Future Enhancements
+```env
+REACT_APP_API_BASE_URL=http://127.0.0.1:5000
+```
 
-- Login Authentication
-- Real-time Monitoring
-- AI Chatbot Assistant
-- Email Alert System
-- Cloud Deployment
-- Department Performance Analytics
-- Employee Wellness Score
+## Jira Setup
 
----
+1. Create an Atlassian API token.
+2. Configure Jira URL, email, token, and project key in backend `.env` or through the Settings page.
+3. Use Settings -> Test Connection to verify credentials and discover projects.
+4. Use Sync Now for manual sync or let the scheduler run periodic Jira sync.
 
-# Applications
+## API Documentation
 
-- HR Analytics
-- Workforce Monitoring
-- Employee Wellness Tracking
-- Productivity Analysis
-- Burnout Prevention Systems
+Authentication:
+- `POST /api/login`
+- `POST /api/register`
+- `POST /api/logout`
+- `GET /api/profile`
+- `PUT /api/profile`
+- `POST /api/change-password`
+- `POST /api/forgot-password`
 
----
+Analytics and ML:
+- `GET /api/dashboard-data`
+- `GET /api/ai-summary`
+- `POST /predict-burnout`
+- `POST /predict-productivity`
+- `GET /api/historical-analytics`
 
-# Learning Outcomes
+Employee and Jira:
+- `POST /upload-dataset`
+- `GET /employee-history`
+- `POST /api/sync-jira`
+- `GET /api/jira-sync-logs`
+- `GET /api/jira-sync-status`
 
-Through this project, we learned:
-- Full Stack Development
-- REST API Integration
-- Machine Learning Deployment
-- Data Visualization
-- React Dashboard Design
-- PDF/CSV Report Generation
+Settings and reports:
+- `GET /api/settings`
+- `PUT /api/settings`
+- `GET /api/audit-logs`
+- `GET /api/notifications`
+- `POST /api/copilot`
+- `GET /api/executive-report`
+- `GET /api/system-health`
 
----
+## Deployment Guide
 
-# Author
+1. Set production secrets and CORS origins.
+2. Install backend dependencies from `employee-ai-system/requirements.txt`.
+3. Build the frontend with `npm run build`.
+4. Serve Flask through a production WSGI server.
+5. Deploy the React build with a static host or reverse proxy.
+6. Configure persistent database storage and scheduled Jira sync.
 
-Dharma Sundaram
-
----
-
-# License
-
-This project is developed for educational and internship purposes.

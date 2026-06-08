@@ -1,4 +1,5 @@
 import React, { createContext, useState, useEffect, useContext, useCallback } from "react";
+import { API_BASE_URL as BACKEND_URL } from '../services/api';
 
 const ThemeContext = createContext();
 
@@ -109,7 +110,6 @@ export const fontOptions = {
   'IBM Plex Sans': '"IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
 };
 
-const BACKEND_URL = "http://127.0.0.1:5000";
 
 export function ThemeProvider({ children }) {
   const [theme, setTheme] = useState(() => localStorage.getItem("app-theme") || "dark");

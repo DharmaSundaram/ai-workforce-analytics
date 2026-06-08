@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
+import { API_BASE_URL as BACKEND_URL } from '../services/api';
 import { useTheme } from '../context/ThemeContext';
 import { useNavigate } from "react-router-dom";
 import {
@@ -23,7 +24,6 @@ const { Header, Content } = Layout;
 const { Text, Title } = Typography;
 const { Option } = Select;
 
-const BACKEND_URL = "http://127.0.0.1:5000";
 
 function SettingsPage() {
   const navigate = useNavigate();

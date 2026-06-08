@@ -1,8 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { API_BASE_URL as BACKEND_URL } from '../services/api';
 import { Button, Input } from 'antd';
 
 
-const BACKEND_URL = 'http://127.0.0.1:5000';
 
 const EXAMPLE_CHIPS = [
   'Team summary',

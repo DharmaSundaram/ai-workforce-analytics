@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { API_BASE_URL as BACKEND_URL } from '../services/api';
 import { Layout, Card, Table, Input, Button, Tag, notification } from 'antd';
 
 import { useNavigate } from 'react-router-dom';
@@ -6,7 +7,6 @@ import { useNavigate } from 'react-router-dom';
 const { Header, Content } = Layout;
 const { Search } = Input;
 
-const BACKEND_URL = 'http://127.0.0.1:5000';
 
 const ACTION_TAG_COLORS = {
   login: 'green',

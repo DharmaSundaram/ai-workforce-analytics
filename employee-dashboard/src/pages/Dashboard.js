@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
+import { API_BASE_URL as BACKEND_URL } from '../services/api';
 import { useNavigate } from "react-router-dom";
 import Papa from "papaparse";
 import { useTheme } from "../context/ThemeContext";
@@ -65,7 +66,6 @@ const { Option } = Select;
 // =========================================
 // BACKEND URL
 // =========================================
-const BACKEND_URL = "http://127.0.0.1:5000";
 
 function Dashboard() {
   const navigate = useNavigate();
