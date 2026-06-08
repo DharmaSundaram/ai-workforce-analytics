@@ -1,12 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Layout, Card, Table, Input, Button, Tag, notification } from 'antd';
-import {
-  ArrowLeftOutlined,
-  AuditOutlined,
-  SearchOutlined,
-  DownloadOutlined,
-  ReloadOutlined,
-} from '@ant-design/icons';
+
 import { useNavigate } from 'react-router-dom';
 
 const { Header, Content } = Layout;
@@ -151,10 +145,10 @@ function AuditLogPage() {
           <Button
             className="header-nav-btn"
             type="text"
-            icon={<ArrowLeftOutlined />}
+            icon={<i className="fa-solid fa-circle"></i>}
             onClick={() => navigate('/dashboard')}
           />
-          <AuditOutlined style={{ fontSize: 22, color: '#b388ff' }} />
+          <i className="fa-solid fa-shield-halved" style={{ fontSize: 22, color: '#b388ff' }} ></i>
           <span style={{ fontSize: 20, fontWeight: 600, color: '#fff' }}>Audit Logs</span>
         </div>
       </Header>
@@ -175,7 +169,7 @@ function AuditLogPage() {
               <Search
                 placeholder="Search by action, email, or IP"
                 allowClear
-                enterButton={<SearchOutlined />}
+                enterButton={<i className="fa-solid fa-magnifying-glass"></i>}
                 onSearch={handleSearch}
                 style={{ width: 320 }}
               />
@@ -189,7 +183,7 @@ function AuditLogPage() {
 
             <div style={{ display: 'flex', gap: 8 }}>
               <Button
-                icon={<ReloadOutlined />}
+                icon={<i className="fa-solid fa-circle"></i>}
                 onClick={handleRefresh}
                 loading={loading}
               >
@@ -197,7 +191,7 @@ function AuditLogPage() {
               </Button>
               <Button
                 type="primary"
-                icon={<DownloadOutlined />}
+                icon={<i className="fa-solid fa-circle"></i>}
                 onClick={handleExportCSV}
                 loading={exporting}
               >

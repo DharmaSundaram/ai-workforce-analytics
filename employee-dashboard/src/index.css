@@ -45,3 +45,81 @@ body[data-theme="light"] ::-webkit-scrollbar-track {
 body[data-theme="light"] ::-webkit-scrollbar-thumb {
   background: #94a3b8;
 }
+
+/* Global CSS Variables */
+:root {
+  /* Default Colors (Skip Shade Gradient) */
+  --accent-color: #FF0000;
+  --accent-gradient: linear-gradient(135deg, #FF5159, #FF0000);
+  --accent-glow: rgba(255, 0, 0, 0.5);
+  
+  --font-base: 'Merriweather', serif;
+  
+  --glass-bg: rgba(15, 23, 42, 0.6);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  --glass-blur: blur(12px);
+  
+  --text-primary: #e2e8f0;
+  --text-secondary: #cbd5e1;
+  --text-muted: #94a3b8;
+}
+
+body[data-theme="light"] {
+  --glass-bg: rgba(255, 255, 255, 0.7);
+  --glass-border: rgba(0, 0, 0, 0.05);
+  --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.05);
+  
+  --text-primary: #1e293b;
+  --text-secondary: #334155;
+  --text-muted: #64748b;
+}
+
+/* Base Body Update */
+body {
+  font-family: var(--font-base);
+}
+
+/* Glassmorphism Utilities */
+.glass-panel {
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+  border-radius: 16px;
+}
+
+.glass-card {
+  background: var(--glass-bg) !important;
+  backdrop-filter: var(--glass-blur) !important;
+  -webkit-backdrop-filter: var(--glass-blur) !important;
+  border: 1px solid var(--glass-border) !important;
+  box-shadow: var(--glass-shadow) !important;
+  border-radius: 16px !important;
+  transition: transform 0.3s ease, box-shadow 0.3s ease !important;
+}
+
+.glass-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 40px 0 var(--accent-glow) !important;
+  border-color: var(--accent-color) !important;
+}
+
+/* Typography Enhancements */
+h1, h2, h3, h4, h5, h6 {
+  color: var(--text-primary);
+  font-family: var(--font-base);
+  font-weight: 600;
+}
+
+p, span, div {
+  font-family: var(--font-base);
+}
+
+/* Futuristic Gradients */
+.text-gradient {
+  background: var(--accent-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Button, notification } from 'antd';
-import { FilePdfOutlined, LoadingOutlined } from '@ant-design/icons';
+
 
 const BACKEND_URL = 'http://127.0.0.1:5000';
 
@@ -379,7 +379,7 @@ const ExecutiveReportButton = () => {
   return (
     <Button
       className="header-nav-btn"
-      icon={loading ? <LoadingOutlined spin /> : <FilePdfOutlined />}
+      icon={loading ? <i className="fa-solid fa-spinner fa-spin" spin ></i> : <i className="fa-solid fa-file-pdf"></i>}
       onClick={handleGenerateReport}
       loading={false}
       disabled={loading}

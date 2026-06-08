@@ -1,24 +1,16 @@
 import React from "react";
 import { Modal, Tag, Progress, Row, Col, Divider, Empty } from "antd";
-import {
-  UserOutlined,
-  ProjectOutlined,
-  FileTextOutlined,
-  ClockCircleOutlined,
-  ThunderboltOutlined,
-  RiseOutlined,
-  WarningFilled,
-  ExclamationCircleFilled,
-  CheckCircleFilled,
-  BulbOutlined,
-  HistoryOutlined,
-  AimOutlined,
-  TeamOutlined,
-} from "@ant-design/icons";
 
-function EmployeeModal({ visible, employee, onClose, employeeHistory }) {
+
+function EmployeeModal({ visible, employee, aggregatedEmployee, onClose, employeeHistory }) {
   if (!employee) return null;
 
+  const agg = aggregatedEmployee || {};
+  const totalHours = agg.total_hours !== undefined ? agg.total_hours : employee.total_hours || 0;
+  const overtimeHours = agg.overtime !== undefined ? agg.overtime : employee.overtime_hours || 0;
+  const tasksCompleted = agg.completed_tasks !== undefined ? agg.completed_tasks : employee.tasks_completed || 0;
+  const projectsList = agg.projects ? agg.projects.join(", ") : employee.project_name;
+  
   const prod = Number(employee.productivity || 0);
   const predicted = Number(employee.predicted_productivity || 0);
   const burnout = employee.burnout_risk || "Low";
@@ -30,7 +22,7 @@ function EmployeeModal({ visible, employee, onClose, employeeHistory }) {
         color: "#ef4444",
         bg: "rgba(239,68,68,0.12)",
         border: "rgba(239,68,68,0.3)",
-        icon: <WarningFilled />,
+        icon: <i className="fa-solid fa-circle"></i>,
         label: "High Risk",
       };
     if (risk === "Medium")
@@ -38,14 +30,14 @@ function EmployeeModal({ visible, employee, onClose, employeeHistory }) {
         color: "#f59e0b",
         bg: "rgba(245,158,11,0.12)",
         border: "rgba(245,158,11,0.3)",
-        icon: <ExclamationCircleFilled />,
+        icon: <i className="fa-solid fa-circle"></i>,
         label: "Medium Risk",
       };
     return {
       color: "#10b981",
       bg: "rgba(16,185,129,0.12)",
       border: "rgba(16,185,129,0.3)",
-      icon: <CheckCircleFilled />,
+      icon: <i className="fa-solid fa-circle"></i>,
       label: "Low Risk",
     };
   };
@@ -103,17 +95,17 @@ function EmployeeModal({ visible, employee, onClose, employeeHistory }) {
         {/* Header */}
         <div className="modal-header-section">
           <div className="modal-avatar">
-            <UserOutlined style={{ fontSize: 28, color: "#60a5fa" }} />
+            <i className="fa-solid fa-user" style={{ fontSize: 28, color: "#60a5fa" }} ></i>
           </div>
           <div>
             <h2 className="modal-employee-name">{employee.employee_name}</h2>
             <div className="modal-meta">
               <span>
-                <ProjectOutlined style={{ marginRight: 4 }} />
-                {employee.project_name}
+                <i className="fa-solid fa-diagram-project" style={{ marginRight: 4 }} ></i>
+                {projectsList}
               </span>
               <span>
-                <FileTextOutlined style={{ marginRight: 4 }} />
+                <i className="fa-solid fa-file-lines" style={{ marginRight: 4 }} ></i>
                 {employee.task_name}
               </span>
             </div>
@@ -165,13 +157,13 @@ function EmployeeModal({ visible, employee, onClose, employeeHistory }) {
             lineHeight: 1.6,
           }}
         >
-          <BulbOutlined style={{ color: "#a78bfa", marginRight: 8 }} />
+          <i className="fa-solid fa-lightbulb" style={{ color: "#a78bfa", marginRight: 8 }} ></i>
           {aiSummaryText}
         </div>
 
         {/* Performance Metrics — Circular Gauges */}
         <h3 className="modal-section-title">
-          <RiseOutlined style={{ marginRight: 8, color: "#10b981" }} />
+          <i className="fa-solid fa-arrow-trend-up" style={{ marginRight: 8, color: "#10b981" }} ></i>
           Performance Metrics
         </h3>
         <Row gutter={[16, 16]} style={{ marginBottom: 20 }}>
@@ -205,13 +197,13 @@ function EmployeeModal({ visible, employee, onClose, employeeHistory }) {
 
         {/* Workload Summary */}
         <h3 className="modal-section-title">
-          <ClockCircleOutlined style={{ marginRight: 8, color: "#fbbf24" }} />
+          <i className="fa-solid fa-circle" style={{ marginRight: 8, color: "#fbbf24" }} ></i>
           Workload Summary
         </h3>
         <Row gutter={[12, 12]} style={{ marginBottom: 20 }}>
           <Col span={6}>
             <div className="modal-stat-box">
-              <div className="modal-stat-value">{employee.total_hours || 0}h</div>
+              <div className="modal-stat-value">{totalHours}h</div>
               <div className="modal-stat-label">Total Hours</div>
             </div>
           </Col>
@@ -220,10 +212,10 @@ function EmployeeModal({ visible, employee, onClose, employeeHistory }) {
               <div
                 className="modal-stat-value"
                 style={{
-                  color: Number(employee.overtime_hours) > 0 ? "#fca5a5" : "inherit",
+                  color: overtimeHours > 0 ? "#fca5a5" : "inherit",
                 }}
               >
-                {employee.overtime_hours || 0}h
+                {overtimeHours}h
               </div>
               <div className="modal-stat-label">Overtime</div>
             </div>
@@ -231,7 +223,7 @@ function EmployeeModal({ visible, employee, onClose, employeeHistory }) {
           <Col span={6}>
             <div className="modal-stat-box">
               <div className="modal-stat-value">
-                <AimOutlined style={{ marginRight: 4 }} />
+                <i className="fa-solid fa-circle" style={{ marginRight: 4 }} ></i>
                 {employee.focus_score || 0}
               </div>
               <div className="modal-stat-label">Focus Score</div>
@@ -239,7 +231,7 @@ function EmployeeModal({ visible, employee, onClose, employeeHistory }) {
           </Col>
           <Col span={6}>
             <div className="modal-stat-box">
-              <div className="modal-stat-value">{employee.tasks_completed || 0}</div>
+              <div className="modal-stat-value">{tasksCompleted}</div>
               <div className="modal-stat-label">Tasks Done</div>
             </div>
           </Col>
@@ -249,15 +241,14 @@ function EmployeeModal({ visible, employee, onClose, employeeHistory }) {
         {recommendations.length > 0 && (
           <>
             <h3 className="modal-section-title">
-              <BulbOutlined style={{ marginRight: 8, color: "#a78bfa" }} />
+              <i className="fa-solid fa-lightbulb" style={{ marginRight: 8, color: "#a78bfa" }} ></i>
               AI Recommendations
             </h3>
             <div className="modal-recommendations">
               {recommendations.map((rec, idx) => (
                 <div key={idx} className="modal-rec-item">
-                  <ThunderboltOutlined
-                    style={{ color: "#a78bfa", marginRight: 10, fontSize: 14, flexShrink: 0 }}
-                  />
+                  <i className="fa-solid fa-circle" style={{ color: "#a78bfa", marginRight: 10, fontSize: 14, flexShrink: 0 }}
+                  ></i>
                   <span>{rec}</span>
                 </div>
               ))}
@@ -268,7 +259,7 @@ function EmployeeModal({ visible, employee, onClose, employeeHistory }) {
         {/* Historical Uploads */}
         <Divider style={{ borderColor: "rgba(255,255,255,0.08)", margin: "16px 0" }} />
         <h3 className="modal-section-title">
-          <HistoryOutlined style={{ marginRight: 8, color: "#60a5fa" }} />
+          <i className="fa-solid fa-clock-rotate-left" style={{ marginRight: 8, color: "#60a5fa" }} ></i>
           Upload History
         </h3>
         {historyForEmployee.length === 0 ? (
@@ -283,7 +274,7 @@ function EmployeeModal({ visible, employee, onClose, employeeHistory }) {
               <div key={idx} className="modal-history-item">
                 <div className="modal-history-left">
                   <span className="modal-history-project">
-                    <TeamOutlined style={{ marginRight: 4 }} />
+                    <i className="fa-solid fa-user-group" style={{ marginRight: 4 }} ></i>
                     {h.project}
                   </span>
                   <span className="modal-history-task">{h.task}</span>

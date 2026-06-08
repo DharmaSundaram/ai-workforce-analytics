@@ -1,10 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { Card } from "antd";
-import {
-  CheckCircleOutlined,
-  CloseCircleOutlined,
-  ApiOutlined,
-} from "@ant-design/icons";
+
 
 const BACKEND_URL = "http://127.0.0.1:5000";
 
@@ -52,7 +48,7 @@ function SystemHealthWidget() {
       style={{ marginBottom: 24 }}
       title={
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <ApiOutlined style={{ color: "#8b5cf6", fontSize: 16 }} />
+          <i className="fa-solid fa-circle" style={{ color: "#8b5cf6", fontSize: 16 }} ></i>
           <span style={{ color: "#e2e8f0", fontSize: 14, fontWeight: 600 }}>System Health</span>
           <span
             style={{
@@ -94,9 +90,9 @@ function SystemHealthWidget() {
               }}
             >
               {ok ? (
-                <CheckCircleOutlined style={{ color: "#10b981", fontSize: 14 }} />
+                <i className="fa-solid fa-circle-check" style={{ color: "#10b981", fontSize: 14 }} ></i>
               ) : (
-                <CloseCircleOutlined style={{ color: "#ef4444", fontSize: 14 }} />
+                <i className="fa-solid fa-circle-xmark" style={{ color: "#ef4444", fontSize: 14 }} ></i>
               )}
               <span style={{ color: "#e2e8f0", fontSize: 13, flex: 1 }}>{label}</span>
               <span style={{ color: "#64748b", fontSize: 11 }}>

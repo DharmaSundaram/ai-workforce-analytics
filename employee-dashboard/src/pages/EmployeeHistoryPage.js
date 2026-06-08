@@ -17,23 +17,7 @@ import {
   notification,
   Typography,
 } from "antd";
-import {
-  SearchOutlined,
-  HistoryOutlined,
-  UserOutlined,
-  CalendarOutlined,
-  FilterOutlined,
-  DashboardOutlined,
-  TeamOutlined,
-  SyncOutlined,
-  CloudUploadOutlined,
-  ClockCircleOutlined,
-  ArrowLeftOutlined,
-  WarningFilled,
-  ExclamationCircleFilled,
-  CheckCircleFilled,
-  LogoutOutlined,
-} from "@ant-design/icons";
+
 import { useTheme } from "../context/ThemeContext";
 import "../App.css";
 
@@ -159,6 +143,8 @@ function EmployeeHistoryPage() {
   const handleLogout = () => {
     localStorage.removeItem("isAuthenticated");
     localStorage.removeItem("loginTime");
+    localStorage.removeItem("sessionExpiresAt");
+    localStorage.removeItem("jwt_token");
     localStorage.removeItem("user");
     navigate("/login");
   };
@@ -176,7 +162,7 @@ function EmployeeHistoryPage() {
             fontSize: 12,
           }}
         >
-          <WarningFilled style={{ marginRight: 4 }} /> High
+          <i className="fa-solid fa-circle" style={{ marginRight: 4 }} ></i> High
         </Tag>
       );
     if (risk === "Medium")
@@ -191,7 +177,7 @@ function EmployeeHistoryPage() {
             fontSize: 12,
           }}
         >
-          <ExclamationCircleFilled style={{ marginRight: 4 }} /> Medium
+          <i className="fa-solid fa-circle" style={{ marginRight: 4 }} ></i> Medium
         </Tag>
       );
     return (
@@ -205,7 +191,7 @@ function EmployeeHistoryPage() {
           fontSize: 12,
         }}
       >
-        <CheckCircleFilled style={{ marginRight: 4 }} /> Low
+        <i className="fa-solid fa-circle" style={{ marginRight: 4 }} ></i> Low
       </Tag>
     );
   };
@@ -218,7 +204,7 @@ function EmployeeHistoryPage() {
       sorter: (a, b) => a.employee_name.localeCompare(b.employee_name),
       render: (name) => (
         <span style={{ fontWeight: 600, color: "var(--text-secondary)" }}>
-          <UserOutlined style={{ marginRight: 6, color: "#60a5fa" }} />
+          <i className="fa-solid fa-user" style={{ marginRight: 6, color: "#60a5fa" }} ></i>
           {name}
         </span>
       ),
@@ -287,7 +273,7 @@ function EmployeeHistoryPage() {
       sorter: (a, b) => a.upload_time.localeCompare(b.upload_time),
       render: (v) => (
         <span style={{ color: "var(--text-dim)", fontSize: 12 }}>
-          <CalendarOutlined style={{ marginRight: 4 }} />
+          <i className="fa-solid fa-calendar" style={{ marginRight: 4 }} ></i>
           {v}
         </span>
       ),
@@ -301,7 +287,7 @@ function EmployeeHistoryPage() {
       <Header className="app-header">
         <div className="header-brand">
           <div className="header-logo-icon">
-            <DashboardOutlined style={{ fontSize: 20, color: "#fff" }} />
+            <i className="fa-solid fa-chart-line" style={{ fontSize: 20, color: "#fff" }} ></i>
           </div>
           <div>
             <div className="header-title">Employee History</div>
@@ -310,14 +296,14 @@ function EmployeeHistoryPage() {
         </div>
         <div className="header-badge-area">
           <Button
-            icon={<ArrowLeftOutlined />}
+            icon={<i className="fa-solid fa-circle"></i>}
             onClick={() => navigate("/dashboard")}
             className="header-nav-btn"
           >
             Dashboard
           </Button>
           <Button
-            icon={<LogoutOutlined />}
+            icon={<i className="fa-solid fa-right-from-bracket"></i>}
             onClick={handleLogout}
             className="header-nav-btn"
             danger
@@ -333,7 +319,7 @@ function EmployeeHistoryPage() {
           <Row gutter={[12, 12]} align="middle">
             <Col xs={24} sm={12} md={6}>
               <Input
-                prefix={<SearchOutlined style={{ color: "rgba(148,163,184,0.5)" }} />}
+                prefix={<i className="fa-solid fa-magnifying-glass" style={{ color: "rgba(148,163,184,0.5)" }} ></i>}
                 placeholder="Search employee..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
@@ -379,7 +365,7 @@ function EmployeeHistoryPage() {
             </Col>
             <Col xs={24} sm={8} md={5} style={{ display: "flex", gap: 8 }}>
               <Button
-                icon={<FilterOutlined />}
+                icon={<i className="fa-solid fa-filter"></i>}
                 onClick={handleSearch}
                 className="filter-btn"
                 type="primary"
@@ -409,7 +395,7 @@ function EmployeeHistoryPage() {
             <Card
               title={
                 <span style={{ color: "var(--text-secondary)" }}>
-                  <HistoryOutlined style={{ marginRight: 8, color: "#60a5fa" }} />
+                  <i className="fa-solid fa-clock-rotate-left" style={{ marginRight: 8, color: "#60a5fa" }} ></i>
                   Upload Sessions
                   {sessions.length > 0 && (
                     <Tag
@@ -445,15 +431,14 @@ function EmployeeHistoryPage() {
                   {sessions.slice(0, 10).map((session, idx) => (
                     <div key={idx} className="session-item">
                       <div className="session-left">
-                        <CloudUploadOutlined
-                          style={{ color: "#60a5fa", fontSize: 18, marginRight: 12 }}
-                        />
+                        <i className="fa-solid fa-cloud-arrow-up" style={{ color: "#60a5fa", fontSize: 18, marginRight: 12 }}
+                        ></i>
                         <div>
                           <div style={{ color: "var(--text-secondary)", fontWeight: 600, fontSize: 13 }}>
                             Batch: {session.batch_id}
                           </div>
                           <div style={{ color: "var(--text-dim)", fontSize: 12 }}>
-                            <CalendarOutlined style={{ marginRight: 4 }} />
+                            <i className="fa-solid fa-calendar" style={{ marginRight: 4 }} ></i>
                             {session.session_time}
                           </div>
                         </div>
@@ -479,10 +464,9 @@ function EmployeeHistoryPage() {
           <Col xs={24} lg={8}>
             <Card className="chart-card glass-card" bordered={false}>
               <div style={{ textAlign: "center", padding: "20px 0" }}>
-                <SyncOutlined
-                  style={{ fontSize: 36, color: "#60a5fa", marginBottom: 16 }}
+                <i className="fa-solid fa-arrows-rotate" style={{ fontSize: 36, color: "#60a5fa", marginBottom: 16 }}
                   spin={syncLoading}
-                />
+                ></i>
                 <div
                   style={{
                     color: "var(--text-secondary)",
@@ -500,11 +484,11 @@ function EmployeeHistoryPage() {
                     marginBottom: 20,
                   }}
                 >
-                  <ClockCircleOutlined style={{ marginRight: 4 }} />
+                  <i className="fa-solid fa-circle" style={{ marginRight: 4 }} ></i>
                   Next run: 09:00 AM daily
                 </div>
                 <Button
-                  icon={<SyncOutlined />}
+                  icon={<i className="fa-solid fa-arrows-rotate"></i>}
                   onClick={handleSync}
                   loading={syncLoading}
                   className="filter-btn"
@@ -523,7 +507,7 @@ function EmployeeHistoryPage() {
         <Card
           title={
             <span style={{ color: 'var(--text-secondary)' }}>
-              <SyncOutlined style={{ marginRight: 8, color: '#a78bfa' }} />
+              <i className="fa-solid fa-arrows-rotate" style={{ marginRight: 8, color: '#a78bfa' }} ></i>
               Jira Sync Logs
               {jiraSyncLogs.length > 0 && (
                 <Tag
@@ -560,19 +544,22 @@ function EmployeeHistoryPage() {
               {jiraSyncLogs.slice(0, 15).map((log, idx) => (
                 <div key={idx} className="session-item">
                   <div className="session-left">
-                    <SyncOutlined
-                      style={{ color: log.status === 'success' ? '#10b981' : '#ef4444', fontSize: 18, marginRight: 12 }}
-                    />
+                    <i className="fa-solid fa-arrows-rotate" style={{ color: log.status === 'success' ? '#10b981' : '#ef4444', fontSize: 18, marginRight: 12 }}
+                    ></i>
                     <div>
                       <div style={{ color: 'var(--text-secondary)', fontWeight: 600, fontSize: 13 }}>
+                        {log.project_name || "All Projects"} <span style={{ color: "var(--text-muted)", fontWeight: "normal" }}>({log.project_key || "-"})</span>
+                      </div>
+                      <div style={{ color: 'var(--text-dim)', fontSize: 12, marginTop: 4 }}>
+                        <i className="fa-solid fa-file-lines" style={{ marginRight: 4 }} ></i>
                         {log.total_records} records synced
                       </div>
-                      <div style={{ color: 'var(--text-dim)', fontSize: 12 }}>
-                        <CalendarOutlined style={{ marginRight: 4 }} />
+                      <div style={{ color: 'var(--text-dim)', fontSize: 12, marginTop: 2 }}>
+                        <i className="fa-solid fa-calendar" style={{ marginRight: 4 }} ></i>
                         {log.sync_time}
                         {log.duration_seconds > 0 && (
                           <span style={{ marginLeft: 8 }}>
-                            <ClockCircleOutlined style={{ marginRight: 4 }} />
+                            <i className="fa-solid fa-circle" style={{ marginRight: 4 }} ></i>
                             {log.duration_seconds}s
                           </span>
                         )}
@@ -590,9 +577,9 @@ function EmployeeHistoryPage() {
                     }}
                   >
                     {log.status === 'success' ? (
-                      <><CheckCircleFilled style={{ marginRight: 4 }} /> Success</>
+                      <><i className="fa-solid fa-circle" style={{ marginRight: 4 }} ></i> Success</>
                     ) : (
-                      <><WarningFilled style={{ marginRight: 4 }} /> Error</>
+                      <><i className="fa-solid fa-circle" style={{ marginRight: 4 }} ></i> Error</>
                     )}
                   </Tag>
                 </div>
@@ -605,7 +592,7 @@ function EmployeeHistoryPage() {
         <Card
           title={
             <span style={{ color: "var(--text-secondary)" }}>
-              <TeamOutlined style={{ marginRight: 8, color: "#60a5fa" }} />
+              <i className="fa-solid fa-user-group" style={{ marginRight: 8, color: "#60a5fa" }} ></i>
               Employee Records
               <Tag
                 style={{

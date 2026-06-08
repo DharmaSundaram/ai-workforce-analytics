@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Button, Input } from 'antd';
-import { RobotOutlined, SendOutlined, CloseOutlined } from '@ant-design/icons';
+
 
 const BACKEND_URL = 'http://127.0.0.1:5000';
 
@@ -110,6 +110,25 @@ const CopilotChat = () => {
       0%, 80%, 100% { transform: scale(0); }
       40% { transform: scale(1); }
     }
+    @keyframes orbRing1 {
+      0% { transform: scale(1); opacity: 0.6; }
+      50% { transform: scale(1.35); opacity: 0; }
+      100% { transform: scale(1); opacity: 0; }
+    }
+    @keyframes orbRing2 {
+      0% { transform: scale(1); opacity: 0.4; }
+      50% { transform: scale(1.55); opacity: 0; }
+      100% { transform: scale(1); opacity: 0; }
+    }
+    @keyframes orbRing3 {
+      0% { transform: scale(1); opacity: 0.25; }
+      50% { transform: scale(1.8); opacity: 0; }
+      100% { transform: scale(1); opacity: 0; }
+    }
+    @keyframes orbCoreGlow {
+      0%, 100% { box-shadow: 0 0 12px rgba(139,92,246,0.5), 0 0 24px rgba(139,92,246,0.2); }
+      50% { box-shadow: 0 0 20px rgba(139,92,246,0.7), 0 0 40px rgba(124,58,237,0.35); }
+    }
   `;
 
   const fabStyle = {
@@ -117,19 +136,67 @@ const CopilotChat = () => {
     bottom: 24,
     right: 24,
     zIndex: 1000,
-    width: 56,
-    height: 56,
-    borderRadius: '50%',
-    background: 'linear-gradient(135deg, #8b5cf6, #7c3aed)',
-    border: 'none',
-    color: '#fff',
-    fontSize: 26,
+    width: 72,
+    height: 72,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     cursor: 'pointer',
-    animation: 'copilotPulse 2s infinite',
-    boxShadow: '0 4px 20px rgba(139,92,246,0.4)',
+    background: 'transparent',
+    border: 'none',
+    padding: 0,
+  };
+
+  const orbContainerStyle = {
+    position: 'relative',
+    width: 56,
+    height: 56,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+  };
+
+  const orbRingBase = {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    width: '100%',
+    height: '100%',
+    borderRadius: '50%',
+    border: '2px solid rgba(139,92,246,0.5)',
+    pointerEvents: 'none',
+  };
+
+  const orbRing1Style = {
+    ...orbRingBase,
+    borderColor: 'rgba(139,92,246,0.5)',
+    animation: 'orbRing1 2.5s ease-out infinite',
+  };
+
+  const orbRing2Style = {
+    ...orbRingBase,
+    borderColor: 'rgba(124,58,237,0.4)',
+    animation: 'orbRing2 2.5s ease-out 0.5s infinite',
+  };
+
+  const orbRing3Style = {
+    ...orbRingBase,
+    borderColor: 'rgba(167,139,250,0.3)',
+    animation: 'orbRing3 2.5s ease-out 1s infinite',
+  };
+
+  const orbCoreStyle = {
+    position: 'relative',
+    width: 56,
+    height: 56,
+    borderRadius: '50%',
+    background: 'linear-gradient(135deg, #8b5cf6, #7c3aed)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    color: '#fff',
+    fontSize: 26,
+    animation: 'orbCoreGlow 3s ease-in-out infinite',
     transition: 'transform 0.2s',
   };
 
@@ -252,8 +319,15 @@ const CopilotChat = () => {
       <style>{pulseKeyframes}</style>
 
       {!open && (
-        <div style={fabStyle} onClick={handleOpen} title="AI Workforce Copilot">
-          <RobotOutlined />
+        <div className="ai-orb-btn" style={fabStyle} onClick={handleOpen} title="AI Workforce Copilot">
+          <div className="ai-orb-container" style={orbContainerStyle}>
+            <div className="ai-orb-ring ai-orb-ring-1" style={orbRing1Style} />
+            <div className="ai-orb-ring ai-orb-ring-2" style={orbRing2Style} />
+            <div className="ai-orb-ring ai-orb-ring-3" style={orbRing3Style} />
+            <div className="ai-orb-core" style={orbCoreStyle}>
+              <i className="fa-solid fa-robot"></i>
+            </div>
+          </div>
         </div>
       )}
 
@@ -262,12 +336,12 @@ const CopilotChat = () => {
           {/* Header */}
           <div style={headerStyle}>
             <span style={headerTitleStyle}>
-              <RobotOutlined style={{ fontSize: 18, color: '#8b5cf6' }} />
+              <i className="fa-solid fa-robot" style={{ fontSize: 18, color: '#8b5cf6' }} ></i>
               AI Workforce Copilot
             </span>
             <Button
               type="text"
-              icon={<CloseOutlined />}
+              icon={<i className="fa-solid fa-xmark"></i>}
               onClick={handleClose}
               style={{ color: '#94a3b8', fontSize: 14 }}
               size="small"
@@ -332,7 +406,7 @@ const CopilotChat = () => {
             />
             <Button
               type="primary"
-              icon={<SendOutlined />}
+              icon={<i className="fa-solid fa-paper-plane"></i>}
               onClick={handleSend}
               disabled={!input.trim() || loading}
               style={{

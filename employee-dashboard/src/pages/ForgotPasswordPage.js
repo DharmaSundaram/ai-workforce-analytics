@@ -1,16 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Input, Button, notification } from "antd";
-import {
-  MailOutlined,
-  LockOutlined,
-  LoadingOutlined,
-  SafetyCertificateOutlined,
-  DashboardOutlined,
-  ArrowLeftOutlined,
-  CheckCircleOutlined,
-  KeyOutlined,
-} from "@ant-design/icons";
+
 
 const BACKEND_URL = "http://127.0.0.1:5000";
 
@@ -19,6 +10,7 @@ function ForgotPasswordPage() {
   const [identifier, setIdentifier] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [resetToken, setResetToken] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const navigate = useNavigate();
@@ -44,10 +36,11 @@ function ForgotPasswordPage() {
       const result = await response.json();
 
       if (result.account_found) {
+        setResetToken(result.reset_token || "");
         setStep(2);
         api.success({
           message: "Account Found",
-          description: "Please set your new password.",
+          description: "Reset verification created. Please set your new password.",
           placement: "topRight",
           duration: 3,
         });
@@ -90,6 +83,12 @@ function ForgotPasswordPage() {
       return;
     }
 
+    if (!resetToken) {
+      setError("Reset verification expired. Please restart password reset.");
+      setStep(1);
+      return;
+    }
+
     setLoading(true);
     setError("");
 
@@ -99,6 +98,7 @@ function ForgotPasswordPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           identifier,
+          reset_token: resetToken,
           new_password: newPassword,
           confirm_password: confirmPassword,
         }),
@@ -156,7 +156,7 @@ function ForgotPasswordPage() {
         {/* Logo Area */}
         <div className="login-logo-area">
           <div className="login-logo-icon">
-            <DashboardOutlined style={{ fontSize: 28, color: "#ffffff" }} />
+            <i className="fa-solid fa-chart-line" style={{ fontSize: 28, color: "#ffffff" }} ></i>
           </div>
           <h1 className="login-title">
             {step === 1 ? "Forgot Password" : "Reset Password"}
@@ -203,7 +203,7 @@ function ForgotPasswordPage() {
             <>
               <div className="login-field">
                 <label className="login-label">
-                  <MailOutlined style={{ marginRight: 6 }} />
+                  <i className="fa-solid fa-envelope" style={{ marginRight: 6 }} ></i>
                   Email or Phone Number
                 </label>
                 <Input
@@ -214,7 +214,7 @@ function ForgotPasswordPage() {
                   size="large"
                   className="login-input"
                   prefix={
-                    <MailOutlined style={{ color: "rgba(148,163,184,0.4)" }} />
+                    <i className="fa-solid fa-envelope" style={{ color: "rgba(148,163,184,0.4)" }} ></i>
                   }
                   autoFocus
                 />
@@ -222,7 +222,7 @@ function ForgotPasswordPage() {
 
               {error && (
                 <div className="login-error">
-                  <SafetyCertificateOutlined style={{ marginRight: 6 }} />
+                  <i className="fa-solid fa-circle" style={{ marginRight: 6 }} ></i>
                   {error}
                 </div>
               )}
@@ -234,7 +234,7 @@ function ForgotPasswordPage() {
                 className="login-btn"
                 size="large"
                 block
-                icon={loading ? <LoadingOutlined /> : <CheckCircleOutlined />}
+                icon={loading ? <i className="fa-solid fa-spinner fa-spin"></i> : <i className="fa-solid fa-circle-check"></i>}
               >
                 {loading ? "Searching..." : "Find My Account"}
               </Button>
@@ -244,7 +244,7 @@ function ForgotPasswordPage() {
               {/* Show the identifier in a disabled field */}
               <div className="login-field">
                 <label className="login-label">
-                  <MailOutlined style={{ marginRight: 6 }} />
+                  <i className="fa-solid fa-envelope" style={{ marginRight: 6 }} ></i>
                   Account
                 </label>
                 <Input
@@ -253,9 +253,8 @@ function ForgotPasswordPage() {
                   size="large"
                   className="login-input"
                   prefix={
-                    <CheckCircleOutlined
-                      style={{ color: "rgba(16,185,129,0.7)" }}
-                    />
+                    <i className="fa-solid fa-circle-check" style={{ color: "rgba(16,185,129,0.7)" }}
+                    ></i>
                   }
                   style={{ opacity: 0.7 }}
                 />
@@ -263,7 +262,7 @@ function ForgotPasswordPage() {
 
               <div className="login-field">
                 <label className="login-label">
-                  <LockOutlined style={{ marginRight: 6 }} />
+                  <i className="fa-solid fa-circle" style={{ marginRight: 6 }} ></i>
                   New Password
                 </label>
                 <Input.Password
@@ -274,7 +273,7 @@ function ForgotPasswordPage() {
                   size="large"
                   className="login-input"
                   prefix={
-                    <LockOutlined style={{ color: "rgba(148,163,184,0.4)" }} />
+                    <i className="fa-solid fa-circle" style={{ color: "rgba(148,163,184,0.4)" }} ></i>
                   }
                   autoFocus
                 />
@@ -282,7 +281,7 @@ function ForgotPasswordPage() {
 
               <div className="login-field">
                 <label className="login-label">
-                  <LockOutlined style={{ marginRight: 6 }} />
+                  <i className="fa-solid fa-circle" style={{ marginRight: 6 }} ></i>
                   Confirm New Password
                 </label>
                 <Input.Password
@@ -293,14 +292,14 @@ function ForgotPasswordPage() {
                   size="large"
                   className="login-input"
                   prefix={
-                    <LockOutlined style={{ color: "rgba(148,163,184,0.4)" }} />
+                    <i className="fa-solid fa-circle" style={{ color: "rgba(148,163,184,0.4)" }} ></i>
                   }
                 />
               </div>
 
               {error && (
                 <div className="login-error">
-                  <SafetyCertificateOutlined style={{ marginRight: 6 }} />
+                  <i className="fa-solid fa-circle" style={{ marginRight: 6 }} ></i>
                   {error}
                 </div>
               )}
@@ -312,7 +311,7 @@ function ForgotPasswordPage() {
                 className="login-btn"
                 size="large"
                 block
-                icon={loading ? <LoadingOutlined /> : <KeyOutlined />}
+                icon={loading ? <i className="fa-solid fa-spinner fa-spin"></i> : <i className="fa-solid fa-circle"></i>}
               >
                 {loading ? "Resetting..." : "Reset Password"}
               </Button>
@@ -333,7 +332,7 @@ function ForgotPasswordPage() {
               gap: 6,
             }}
           >
-            <ArrowLeftOutlined /> Back to Login
+            <i className="fa-solid fa-circle"></i> Back to Login
           </a>
         </div>
       </div>

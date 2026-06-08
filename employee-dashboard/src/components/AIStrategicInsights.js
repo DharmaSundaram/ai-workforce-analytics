@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { Card, Empty } from 'antd';
-import { BulbOutlined } from '@ant-design/icons';
+
 
 const severityColors = {
   success: '#10b981',
@@ -142,7 +142,7 @@ const AIStrategicInsights = ({ employees, aiSummary }) => {
         fontWeight: 600,
       }}
     >
-      <BulbOutlined style={{ color: '#7c3aed', fontSize: 18 }} />
+      <i className="fa-solid fa-lightbulb" style={{ color: '#7c3aed', fontSize: 18 }} ></i>
       AI Strategic Insights
     </span>
   );
@@ -191,9 +191,9 @@ const AIStrategicInsights = ({ employees, aiSummary }) => {
                   width: 8,
                   height: 8,
                   borderRadius: '50%',
-                  background: severityColors[insight.severity] || '#94a3b8',
+                  background: severityColors[insight.severity] || '#000000',
                   flexShrink: 0,
-                  boxShadow: `0 0 6px ${severityColors[insight.severity] || '#94a3b8'}55`,
+                  boxShadow: `0 0 6px ${severityColors[insight.severity] || '#000000'}55`,
                 }}
               />
               <span

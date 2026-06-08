@@ -12,16 +12,7 @@ import {
   Tag,
   notification,
 } from "antd";
-import {
-  ArrowLeftOutlined,
-  AreaChartOutlined,
-  FireOutlined,
-  ClockCircleOutlined,
-  RiseOutlined,
-  FallOutlined,
-  TeamOutlined,
-  BulbOutlined,
-} from "@ant-design/icons";
+
 import {
   AreaChart,
   Area,
@@ -86,6 +77,10 @@ function HistoricalAnalyticsPage() {
     ? ((hoursData[hoursData.length - 1].avg_hours - hoursData[0].avg_hours) / (hoursData[0].avg_hours || 1) * 100).toFixed(1)
     : null;
 
+  const projectComparison = data?.project_comparison || [];
+  const topProject = data?.top_performing_project;
+  const riskProject = data?.highest_risk_project;
+
   // AI Trend Summary
   const trendInsights = [];
   if (prodData.length >= 2) {
@@ -111,9 +106,9 @@ function HistoricalAnalyticsPage() {
       <Header className="app-header">
         <div className="header-left">
           <button className="header-nav-btn" onClick={() => navigate("/dashboard")} style={{ background: "transparent", border: "none", color: "#e2e8f0", cursor: "pointer", display: "flex", alignItems: "center", gap: 6, fontSize: 14 }}>
-            <ArrowLeftOutlined /> Dashboard
+            <i className="fa-solid fa-circle"></i> Dashboard
           </button>
-          <AreaChartOutlined style={{ fontSize: 22, color: "#8b5cf6", marginLeft: 16 }} />
+          <i className="fa-solid fa-circle" style={{ fontSize: 22, color: "#8b5cf6", marginLeft: 16 }} ></i>
           <span className="header-title" style={{ marginLeft: 10, color: "#e2e8f0", fontWeight: 600, fontSize: 18 }}>Historical Analytics</span>
         </div>
       </Header>
@@ -133,7 +128,7 @@ function HistoricalAnalyticsPage() {
           />
           {data && data.has_data && (
             <span style={{ color: "#94a3b8", fontSize: 13 }}>
-              <TeamOutlined style={{ marginRight: 6 }} />
+              <i className="fa-solid fa-user-group" style={{ marginRight: 6 }} ></i>
               {data.total_records} records
             </span>
           )}
@@ -155,14 +150,14 @@ function HistoricalAnalyticsPage() {
                       value={prodData.length > 0 ? prodData[prodData.length - 1].avg_productivity : 0}
                       suffix="%"
                       valueStyle={{ color: "#10b981", fontSize: 32 }}
-                      prefix={<RiseOutlined />}
+                      prefix={<i className="fa-solid fa-arrow-trend-up"></i>}
                     />
                     {prodGrowth !== null && (
                       <Tag
                         color={Number(prodGrowth) >= 0 ? "green" : "red"}
                         style={{ marginTop: 8, fontSize: 12 }}
                       >
-                        {Number(prodGrowth) >= 0 ? <RiseOutlined /> : <FallOutlined />}
+                        {Number(prodGrowth) >= 0 ? <i className="fa-solid fa-arrow-trend-up"></i> : <i className="fa-solid fa-circle"></i>}
                         {' '}{Number(prodGrowth) >= 0 ? '+' : ''}{prodGrowth}% vs start
                       </Tag>
                     )}
@@ -175,7 +170,7 @@ function HistoricalAnalyticsPage() {
                       value={prodData.length}
                       suffix="days"
                       valueStyle={{ color: "#3b82f6", fontSize: 32 }}
-                      prefix={<AreaChartOutlined />}
+                      prefix={<i className="fa-solid fa-circle"></i>}
                     />
                   </Card>
                 </Col>
@@ -185,24 +180,94 @@ function HistoricalAnalyticsPage() {
                       title={<span style={{ color: "#94a3b8" }}>Total Records</span>}
                       value={data.total_records}
                       valueStyle={{ color: "#a78bfa", fontSize: 32 }}
-                      prefix={<TeamOutlined />}
+                      prefix={<i className="fa-solid fa-user-group"></i>}
                     />
                     {hoursGrowth !== null && (
                       <Tag
                         color={Number(hoursGrowth) <= 0 ? "green" : "orange"}
                         style={{ marginTop: 8, fontSize: 12 }}
                       >
-                        <ClockCircleOutlined /> Hours {Number(hoursGrowth) >= 0 ? '+' : ''}{hoursGrowth}%
+                        <i className="fa-solid fa-circle"></i> Hours {Number(hoursGrowth) >= 0 ? '+' : ''}{hoursGrowth}%
                       </Tag>
                     )}
                   </Card>
                 </Col>
               </Row>
 
+              {/* Enterprise Project Summary */}
+              {projectComparison.length > 0 && (
+                <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
+                  <Col xs={24} md={12}>
+                    <Card className="glass-card" bordered={false} style={{ height: "100%" }}>
+                      <h3 style={{ color: "#e2e8f0", marginBottom: 16 }}>
+                        <i className="fa-solid fa-trophy" style={{ marginRight: 8, color: "#f59e0b" }} ></i>
+                        Top Performing Project
+                      </h3>
+                      {topProject ? (
+                        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+                          <div style={{ flex: 1 }}>
+                            <div style={{ fontSize: 20, color: "#fcd34d", fontWeight: 600 }}>{topProject.project_name}</div>
+                            <div style={{ color: "#94a3b8", fontSize: 13 }}>{topProject.total_tasks} tasks synced</div>
+                          </div>
+                          <div style={{ textAlign: "right" }}>
+                            <div style={{ fontSize: 24, color: "#10b981", fontWeight: 700 }}>{topProject.avg_productivity}%</div>
+                            <div style={{ color: "#94a3b8", fontSize: 12 }}>Avg Productivity</div>
+                          </div>
+                        </div>
+                      ) : (
+                        <span style={{ color: "#64748b" }}>Not enough data</span>
+                      )}
+                    </Card>
+                  </Col>
+                  <Col xs={24} md={12}>
+                    <Card className="glass-card" bordered={false} style={{ height: "100%" }}>
+                      <h3 style={{ color: "#e2e8f0", marginBottom: 16 }}>
+                        <i className="fa-solid fa-triangle-exclamation" style={{ marginRight: 8, color: "#ef4444" }} ></i>
+                        Highest Risk Project
+                      </h3>
+                      {riskProject && riskProject.high_burnout_count > 0 ? (
+                        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+                          <div style={{ flex: 1 }}>
+                            <div style={{ fontSize: 20, color: "#fca5a5", fontWeight: 600 }}>{riskProject.project_name}</div>
+                            <div style={{ color: "#94a3b8", fontSize: 13 }}>{riskProject.total_tasks} tasks synced</div>
+                          </div>
+                          <div style={{ textAlign: "right" }}>
+                            <div style={{ fontSize: 24, color: "#ef4444", fontWeight: 700 }}>{riskProject.high_burnout_count}</div>
+                            <div style={{ color: "#94a3b8", fontSize: 12 }}>High Burnout Risks</div>
+                          </div>
+                        </div>
+                      ) : (
+                        <span style={{ color: "#10b981" }}>No projects with high burnout risk</span>
+                      )}
+                    </Card>
+                  </Col>
+                </Row>
+              )}
+
+              {/* Project Comparison Chart */}
+              {projectComparison.length > 0 && (
+                <Card className="glass-card" bordered={false} style={{ marginBottom: 24 }}>
+                  <h3 style={{ color: "#e2e8f0", marginBottom: 20 }}>
+                    <i className="fa-solid fa-diagram-project" style={{ marginRight: 8, color: "#60a5fa" }} ></i>
+                    Project Comparison
+                  </h3>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={projectComparison}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+                      <XAxis dataKey="project_name" stroke="#64748b" fontSize={11} interval={0} angle={-20} textAnchor="end" height={60} />
+                      <YAxis stroke="#64748b" fontSize={11} />
+                      <Tooltip contentStyle={tooltipStyle} />
+                      <Legend />
+                      <Bar dataKey="avg_productivity" fill="#8b5cf6" name="Avg Productivity %" radius={[4, 4, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </Card>
+              )}
+
               {/* Productivity Trend */}
               <Card className="glass-card" bordered={false} style={{ marginBottom: 24 }}>
                 <h3 style={{ color: "#e2e8f0", marginBottom: 20 }}>
-                  <RiseOutlined style={{ marginRight: 8, color: "#10b981" }} />
+                  <i className="fa-solid fa-arrow-trend-up" style={{ marginRight: 8, color: "#10b981" }} ></i>
                   Productivity Trend
                 </h3>
                 <ResponsiveContainer width="100%" height={300}>
@@ -225,7 +290,7 @@ function HistoricalAnalyticsPage() {
               {/* Burnout Trend */}
               <Card className="glass-card" bordered={false} style={{ marginBottom: 24 }}>
                 <h3 style={{ color: "#e2e8f0", marginBottom: 20 }}>
-                  <FireOutlined style={{ marginRight: 8, color: "#ef4444" }} />
+                  <i className="fa-solid fa-fire" style={{ marginRight: 8, color: "#ef4444" }} ></i>
                   Burnout Distribution
                 </h3>
                 <ResponsiveContainer width="100%" height={300}>
@@ -245,7 +310,7 @@ function HistoricalAnalyticsPage() {
               {/* Working Hours Trend */}
               <Card className="glass-card" bordered={false} style={{ marginBottom: 24 }}>
                 <h3 style={{ color: "#e2e8f0", marginBottom: 20 }}>
-                  <ClockCircleOutlined style={{ marginRight: 8, color: "#3b82f6" }} />
+                  <i className="fa-solid fa-circle" style={{ marginRight: 8, color: "#3b82f6" }} ></i>
                   Working Hours Trend
                 </h3>
                 <ResponsiveContainer width="100%" height={300}>
@@ -265,7 +330,7 @@ function HistoricalAnalyticsPage() {
               {trendInsights.length > 0 && (
                 <Card className="glass-card" bordered={false} style={{ marginBottom: 24 }}>
                   <h3 style={{ color: "#e2e8f0", marginBottom: 16 }}>
-                    <BulbOutlined style={{ marginRight: 8, color: "#a78bfa" }} />
+                    <i className="fa-solid fa-lightbulb" style={{ marginRight: 8, color: "#a78bfa" }} ></i>
                     AI Trend Summary
                   </h3>
                   {trendInsights.map((insight, idx) => {

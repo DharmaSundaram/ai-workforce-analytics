@@ -18,10 +18,13 @@ export async function exportAnalyticsPDF(employees, kpis, forecastData) {
   doc.setTextColor(147, 197, 253);
   doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 28);
   doc.text(
-    `Total Records: ${kpis.total_employees || employees.length}`,
+    `Total Records: ${employees.length}`,
     14,
     34
   );
+
+  const projectCount = new Set(employees.map((e) => e.project_name).filter(Boolean)).size;
+  const departmentCount = new Set(employees.map((e) => e.department).filter(Boolean)).size;
 
   // KPI Summary
   doc.setTextColor(15, 23, 42);
@@ -34,6 +37,8 @@ export async function exportAnalyticsPDF(employees, kpis, forecastData) {
     head: [["Metric", "Value"]],
     body: [
       ["Total Employees", String(kpis.total_employees || employees.length)],
+      ["Projects Included", String(projectCount)],
+      ["Departments Included", String(departmentCount)],
       ["Avg Productivity", `${kpis.avg_productivity || 0}%`],
       ["High Burnout", String(kpis.high_burnout || 0)],
       ["Medium Burnout", String(kpis.medium_burnout || 0)],
@@ -56,9 +61,11 @@ export async function exportAnalyticsPDF(employees, kpis, forecastData) {
   doc.setFont("helvetica", "bold");
   doc.text("Employee Analytics Data", 14, 14);
 
-  const tableData = employees.slice(0, 100).map((emp) => [
+  const tableData = employees.map((emp) => [
     emp.employee_name || "",
     emp.project_name || "",
+    emp.department || "",
+    emp.task_name || emp.task || "",
     `${emp.productivity || 0}%`,
     `${emp.predicted_productivity || 0}%`,
     emp.burnout_risk || "",
@@ -73,6 +80,8 @@ export async function exportAnalyticsPDF(employees, kpis, forecastData) {
       [
         "Name",
         "Project",
+        "Department",
+        "Task",
         "Actual %",
         "Predicted %",
         "Burnout",
@@ -84,15 +93,17 @@ export async function exportAnalyticsPDF(employees, kpis, forecastData) {
     body: tableData,
     theme: "grid",
     headStyles: { fillColor: [37, 99, 235], textColor: 255, fontStyle: "bold" },
-    styles: { fontSize: 7, cellPadding: 2.5 },
+    styles: { fontSize: 6, cellPadding: 1.8 },
     columnStyles: {
-      0: { cellWidth: 28 },
-      1: { cellWidth: 26 },
-      4: { cellWidth: 18 },
+      0: { cellWidth: 22 },
+      1: { cellWidth: 20 },
+      2: { cellWidth: 20 },
+      3: { cellWidth: 34 },
+      6: { cellWidth: 16 },
     },
     alternateRowStyles: { fillColor: [245, 247, 250] },
     didParseCell: (data) => {
-      if (data.column.index === 4 && data.section === "body") {
+      if (data.column.index === 6 && data.section === "body") {
         const val = data.cell.raw;
         if (val === "High") data.cell.styles.textColor = [239, 68, 68];
         else if (val === "Medium") data.cell.styles.textColor = [245, 158, 11];

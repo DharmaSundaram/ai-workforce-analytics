@@ -1,15 +1,35 @@
-from dotenv import load_dotenv
-from datetime import datetime, date
-import os
+import re
 
-load_dotenv()
+filepath = r"c:\Users\DHARMA\inten_1\employee-ai-system\jira_sync.py"
 
+with open(filepath, 'r', encoding='utf-8') as f:
+    content = f.read()
 
-def _get_credentials(credentials=None):
-    """
+# Replace _get_credentials
+old_get_creds = """def _get_credentials(credentials=None):
+    \"\"\"
     Resolve Jira credentials from the provided dict, or fallback to .env.
     This allows both DB-based settings and .env-based settings to work.
-    """
+    \"\"\"
+    if credentials:
+        return (
+            credentials.get('url', '').strip(),
+            credentials.get('email', '').strip(),
+            credentials.get('token', '').strip(),
+            credentials.get('project_key', '').strip(),
+        )
+    return (
+        os.environ.get("JIRA_URL", "").strip(),
+        os.environ.get("JIRA_EMAIL", "").strip(),
+        os.environ.get("JIRA_API_TOKEN", "").strip(),
+        os.environ.get("JIRA_PROJECT_KEY", "").strip(),
+    )"""
+
+new_get_creds = """def _get_credentials(credentials=None):
+    \"\"\"
+    Resolve Jira credentials from the provided dict, or fallback to .env.
+    This allows both DB-based settings and .env-based settings to work.
+    \"\"\"
     if credentials:
         return (
             credentials.get('url', '').strip(),
@@ -20,111 +40,25 @@ def _get_credentials(credentials=None):
         os.environ.get("JIRA_URL", "").strip(),
         os.environ.get("JIRA_EMAIL", "").strip(),
         os.environ.get("JIRA_API_TOKEN", "").strip(),
-    )
+    )"""
 
+content = content.replace(old_get_creds, new_get_creds)
 
-def test_jira_connection(credentials=None):
-    """
-    Test if Jira credentials are configured and connection works.
-    Accepts optional credentials dict; otherwise uses .env.
-    """
-    try:
-        from jira import JIRA
+# Replace test_jira_connection signature usage
+old_test_jira = """        url, email, token, _ = _get_credentials(credentials)"""
+new_test_jira = """        url, email, token = _get_credentials(credentials)"""
+content = content.replace(old_test_jira, new_test_jira)
 
-        url, email, token = _get_credentials(credentials)
+# We want to completely replace `def sync_jira_data` up to the end of the file.
+sync_func_start = content.find("def sync_jira_data(db, EmployeeHistory, credentials=None):")
 
-        if not url or not email or not token:
-            return False
+if sync_func_start != -1:
+    content = content[:sync_func_start]
 
-        jira = JIRA(server=url, basic_auth=(email, token))
-        jira.myself()
-        return True
-    except Exception as e:
-        print(f"[JIRA CONNECTION TEST] Failed: {e}")
-        return False
-
-
-def _get_story_points(issue):
-    """
-    Safely extract story points from Jira issue.
-    Tries multiple common custom field IDs used across Jira instances.
-    """
-    custom_fields = [
-        "customfield_10016",  # Jira Cloud default
-        "customfield_10028",  # Some Jira Server instances
-        "customfield_10004",  # Older Jira versions
-        "story_points",       # Direct field name
-    ]
-    for field_name in custom_fields:
-        try:
-            val = getattr(issue.fields, field_name, None)
-            if val is not None:
-                return float(val)
-        except (TypeError, ValueError):
-            continue
-    return 0.0
-
-
-def _extract_issue_metadata(issue):
-    """
-    Extract rich metadata from a Jira issue for better analytics context.
-    Returns a dict with labels, components, sprint, and issue type.
-    """
-    metadata = {}
-
-    # Labels
-    try:
-        metadata["labels"] = issue.fields.labels or []
-    except Exception:
-        metadata["labels"] = []
-
-    # Components
-    try:
-        metadata["components"] = [
-            c.name for c in (issue.fields.components or [])
-        ]
-    except Exception:
-        metadata["components"] = []
-
-    # Issue type
-    try:
-        metadata["issue_type"] = issue.fields.issuetype.name if issue.fields.issuetype else "Task"
-    except Exception:
-        metadata["issue_type"] = "Task"
-
-    # Sprint (from common custom field)
-    try:
-        sprint_field = getattr(issue.fields, "customfield_10020", None)
-        if sprint_field and isinstance(sprint_field, list) and len(sprint_field) > 0:
-            sprint_obj = sprint_field[-1]  # Latest sprint
-            if hasattr(sprint_obj, 'name'):
-                metadata["sprint"] = sprint_obj.name
-            elif isinstance(sprint_obj, str):
-                # Parse sprint string format
-                import re
-                match = re.search(r'name=([^,]+)', sprint_obj)
-                metadata["sprint"] = match.group(1) if match else ""
-            else:
-                metadata["sprint"] = ""
-        else:
-            metadata["sprint"] = ""
-    except Exception:
-        metadata["sprint"] = ""
-
-    return metadata
-
-def _assign_random_department(name):
-    departments = ["Engineering", "HR", "Marketing", "Sales", "Product", "Support", "QA"]
-    # Provide a stable deterministic department for a given name using hash
-    import hashlib
-    hash_val = int(hashlib.md5(name.encode('utf-8')).hexdigest(), 16)
-    return departments[hash_val % len(departments)]
-
-
-def sync_jira_data(db, EmployeeHistory, credentials=None):
-    """
+new_sync_data = """def sync_jira_data(db, EmployeeHistory, credentials=None):
+    \"\"\"
     Sync data from Jira to the local database for ALL discovered projects.
-    """
+    \"\"\"
     try:
         from jira import JIRA
         from jira.exceptions import JIRAError
@@ -223,13 +157,8 @@ def sync_jira_data(db, EmployeeHistory, credentials=None):
 
                         history_entry = EmployeeHistory(
                             employee_name=assignee,
-                            project_id=str(proj.id) if hasattr(proj, 'id') else "",
-                            project_key=proj.project_key,
-                            project_name=proj.project_name,
-                            project=proj.project_name, # keep for backwards compatibility
-                            department=_assign_random_department(assignee),
+                            project=proj.project_name,
                             task=task_identifier,
-                            status=status,
                             productivity=productivity_score,
                             burnout=burnout_risk,
                             working_hours=working_hours,
@@ -258,7 +187,7 @@ def sync_jira_data(db, EmployeeHistory, credentials=None):
                     sync_time=end_time,
                     total_records=project_synced_count,
                     status="success" if project_synced_count > 0 or not all_errors else "warning",
-                    errors="\n".join(all_errors[-5:]) if all_errors else None,
+                    errors="\\n".join(all_errors[-5:]) if all_errors else None,
                     duration_seconds=duration,
                     project_name=getattr(proj, 'project_name', 'Unknown') or 'Unknown',
                     project_key=getattr(proj, 'project_key', 'Unknown') or 'Unknown'
@@ -298,3 +227,11 @@ def sync_jira_data(db, EmployeeHistory, credentials=None):
             "error": str(e),
             "synced_records": 0,
         }
+"""
+
+content += new_sync_data
+
+with open(filepath, 'w', encoding='utf-8') as f:
+    f.write(content)
+
+print("Updated jira_sync.py successfully.")

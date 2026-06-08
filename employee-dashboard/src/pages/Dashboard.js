@@ -56,44 +56,7 @@ import {
 } from "antd";
 
 // ---- Ant Design Icons (Material-style, no emojis) ----
-import {
-  UploadOutlined,
-  SearchOutlined,
-  ExportOutlined,
-  ThunderboltOutlined,
-  TeamOutlined,
-  FireOutlined,
-  ClockCircleOutlined,
-  TrophyOutlined,
-  RobotOutlined,
-  BarChartOutlined,
-  FilterOutlined,
-  SafetyOutlined,
-  RiseOutlined,
-  WarningOutlined,
-  StarOutlined,
-  FileTextOutlined,
-  LoadingOutlined,
-  LogoutOutlined,
-  HistoryOutlined,
-  CloudUploadOutlined,
-  FilePdfOutlined,
-  BulbOutlined,
-  BulbFilled,
-  StarFilled,
-  WarningFilled,
-  ExclamationCircleFilled,
-  CheckCircleFilled,
-  DashboardOutlined,
-  SafetyCertificateFilled,
-  EyeOutlined,
-  AreaChartOutlined,
-  SyncOutlined,
-  UserOutlined,
-  HeartOutlined,
-  SettingOutlined,
-  AuditOutlined,
-} from "@ant-design/icons";
+
 
 const { Header, Content } = Layout;
 const { Text } = Typography;
@@ -114,9 +77,14 @@ function Dashboard() {
 
   const [employees, setEmployees] = useState([]);
   const [filteredEmployees, setFilteredEmployees] = useState([]);
+  const [backendKpis, setBackendKpis] = useState({});
+  const [projectPerformanceOverview, setProjectPerformanceOverview] = useState([]);
+  const [aggregatedEmployees, setAggregatedEmployees] = useState({});
+  const [departmentRankings, setDepartmentRankings] = useState([]);
+  const [connectedProjects, setConnectedProjects] = useState([]);
   const [forecastData, setForecastData] = useState([]);
   const [search, setSearch] = useState("");
-  const [departmentFilter, setDepartmentFilter] = useState("All Departments");
+  const [projectFilter, setProjectFilter] = useState("All Projects");
   const [burnoutFilter, setBurnoutFilter] = useState("All Burnout");
   const [predictionResult, setPredictionResult] = useState("");
   const [isPredicting, setIsPredicting] = useState(false);
@@ -160,8 +128,6 @@ function Dashboard() {
   // DYNAMIC KPIs — computed from filteredEmployees
   // =====================================
 
-  const totalEmployees = filteredEmployees.length;
-
   const highBurnout = filteredEmployees.filter(
     (e) => e.burnout_risk === "High"
   ).length;
@@ -188,6 +154,25 @@ function Dashboard() {
     (e) => Number(e.productivity) >= 80
   ).length;
 
+  const totalTasks = employees.length;
+  const totalEmployees = backendKpis.total_employees || new Set(filteredEmployees.map(e => e.employee_name)).size;
+  const projectsConnected = backendKpis.projects_connected || 0;
+  const projectsSynced = backendKpis.projects_synced || 0;
+  const completedTasks = backendKpis.completed_tasks || 0;
+  const openTasks = backendKpis.open_tasks || 0;
+  const totalWorklogs = backendKpis.total_worklogs || employees.length;
+  const projectOptions = useMemo(() => {
+    const names = new Set();
+    connectedProjects.forEach((project) => {
+      if (project.project_name) names.add(project.project_name);
+      else if (project.project_key) names.add(project.project_key);
+    });
+    employees.forEach((employee) => {
+      if (employee.project_name) names.add(employee.project_name);
+    });
+    return [...names].sort((a, b) => a.localeCompare(b));
+  }, [connectedProjects, employees]);
+
   // =====================================
   // BURNOUT PIE DATA — dynamic from filteredEmployees
   // =====================================
@@ -207,14 +192,44 @@ function Dashboard() {
     },
   ];
 
-  // =====================================
-  // NEW: Department Productivity (for bar chart)
-  // =====================================
+  const projectProductivity = useMemo(() => {
+    const projMap = {};
+    filteredEmployees.forEach((emp) => {
+      const proj = emp.project_name || "Unknown";
+      if (!projMap[proj]) projMap[proj] = { total: 0, count: 0 };
+      projMap[proj].total += Number(emp.productivity || 0);
+      projMap[proj].count += 1;
+    });
+    return Object.entries(projMap)
+      .map(([project, data]) => ({
+        project,
+        avgProductivity: Math.round((data.total / data.count) * 10) / 10,
+      }))
+      .sort((a, b) => b.avgProductivity - a.avgProductivity);
+  }, [filteredEmployees]);
+
+  const projectBurnout = useMemo(() => {
+    const projMap = {};
+    filteredEmployees.forEach((emp) => {
+      const proj = emp.project_name || "Unknown";
+      if (!projMap[proj]) projMap[proj] = { High: 0, Medium: 0, Low: 0 };
+      if (emp.burnout_risk === "High") projMap[proj].High += 1;
+      else if (emp.burnout_risk === "Medium") projMap[proj].Medium += 1;
+      else projMap[proj].Low += 1;
+    });
+    return Object.entries(projMap)
+      .map(([project, data]) => ({
+        project,
+        High: data.High,
+        Medium: data.Medium,
+        Low: data.Low,
+      }));
+  }, [filteredEmployees]);
 
   const departmentProductivity = useMemo(() => {
     const deptMap = {};
     filteredEmployees.forEach((emp) => {
-      const dept = emp.project_name || "Unknown";
+      const dept = emp.department || "Unknown";
       if (!deptMap[dept]) deptMap[dept] = { total: 0, count: 0 };
       deptMap[dept].total += Number(emp.productivity || 0);
       deptMap[dept].count += 1;
@@ -224,18 +239,13 @@ function Dashboard() {
         department,
         avgProductivity: Math.round((data.total / data.count) * 10) / 10,
       }))
-      .sort((a, b) => b.avgProductivity - a.avgProductivity)
-      .slice(0, 8);
+      .sort((a, b) => b.avgProductivity - a.avgProductivity);
   }, [filteredEmployees]);
-
-  // =====================================
-  // NEW: Department Burnout (for stacked bar)
-  // =====================================
 
   const departmentBurnout = useMemo(() => {
     const deptMap = {};
     filteredEmployees.forEach((emp) => {
-      const dept = emp.project_name || "Unknown";
+      const dept = emp.department || "Unknown";
       if (!deptMap[dept]) deptMap[dept] = { High: 0, Medium: 0, Low: 0 };
       if (emp.burnout_risk === "High") deptMap[dept].High += 1;
       else if (emp.burnout_risk === "Medium") deptMap[dept].Medium += 1;
@@ -247,8 +257,7 @@ function Dashboard() {
         High: data.High,
         Medium: data.Medium,
         Low: data.Low,
-      }))
-      .slice(0, 8);
+      }));
   }, [filteredEmployees]);
 
   // =====================================
@@ -305,7 +314,7 @@ function Dashboard() {
         setHasUploaded(true);
 
         setSearch("");
-        setDepartmentFilter("All Departments");
+        setProjectFilter("All Projects");
         setBurnoutFilter("All Burnout");
 
         api.success({
@@ -356,13 +365,19 @@ function Dashboard() {
     fetch(`${BACKEND_URL}/api/dashboard-data`)
       .then((res) => res.json())
       .then((data) => {
-        if (data.success && data.employees && data.employees.length > 0) {
-          setEmployees(data.employees);
-          setFilteredEmployees(data.employees);
+        if (data.success) {
+          const rows = data.employees || [];
+          setEmployees(rows);
+          setFilteredEmployees(rows);
+          setBackendKpis(data.kpis || {});
+          setProjectPerformanceOverview(data.project_performance_overview || []);
+          setAggregatedEmployees(data.aggregated_employees || {});
+          setDepartmentRankings(data.department_rankings || []);
+          setConnectedProjects(data.connected_projects || []);
           setForecastData(data.forecast || []);
           setModelAccuracy(data.accuracy || null);
           setTotalRecords(data.total_records || 0);
-          setHasUploaded(true);
+          setHasUploaded(rows.length > 0 || Boolean(data.has_data));
           if (data.feature_importance) setFeatureImportance(data.feature_importance);
           if (data.productivity_trend) setProductivityTrend(data.productivity_trend);
           if (data.jira_insights) setJiraInsights(data.jira_insights);
@@ -404,14 +419,24 @@ function Dashboard() {
     let filtered = employees;
 
     if (search) {
+      const term = search.toLowerCase();
       filtered = filtered.filter((emp) =>
-        emp.employee_name.toLowerCase().includes(search.toLowerCase())
+        [
+          emp.employee_name,
+          emp.project_name,
+          emp.project_key,
+          emp.department,
+          emp.task_name,
+          emp.status_name,
+        ]
+          .filter(Boolean)
+          .some((value) => String(value).toLowerCase().includes(term))
       );
     }
 
-    if (departmentFilter !== "All Departments") {
+    if (projectFilter !== "All Projects") {
       filtered = filtered.filter(
-        (emp) => emp.project_name === departmentFilter
+        (emp) => emp.project_name === projectFilter
       );
     }
 
@@ -426,7 +451,7 @@ function Dashboard() {
 
   const resetFilters = () => {
     setSearch("");
-    setDepartmentFilter("All Departments");
+    setProjectFilter("All Projects");
     setBurnoutFilter("All Burnout");
     setFilteredEmployees(employees);
   };
@@ -554,6 +579,8 @@ function Dashboard() {
     const user = userData ? JSON.parse(userData) : {};
     localStorage.removeItem("isAuthenticated");
     localStorage.removeItem("loginTime");
+    localStorage.removeItem("sessionExpiresAt");
+    localStorage.removeItem("jwt_token");
     localStorage.removeItem("user");
     fetch(`${BACKEND_URL}/api/logout`, {
       method: 'POST',
@@ -584,6 +611,8 @@ function Dashboard() {
         const statusRes = await fetch(`${BACKEND_URL}/api/jira-sync-status`);
         const statusData = await statusRes.json();
         if (statusData.success) setJiraSyncStatus(statusData);
+        loadDashboardData();
+        fetchAiSummary();
         fetchHistory();
       } else {
         api.warning({
@@ -613,7 +642,7 @@ function Dashboard() {
     if (score >= 80)
       return {
         label: "Excellent",
-        icon: <StarFilled style={{ marginRight: 4 }} />,
+        icon: <i className="fa-solid fa-circle" style={{ marginRight: 4 }} ></i>,
         color: "#10b981",
         cls: "result-card-excellent",
         progressColor: "#10b981",
@@ -621,7 +650,7 @@ function Dashboard() {
     if (score >= 60)
       return {
         label: "Good",
-        icon: <CheckCircleFilled style={{ marginRight: 4 }} />,
+        icon: <i className="fa-solid fa-circle" style={{ marginRight: 4 }} ></i>,
         color: "#3b82f6",
         cls: "result-card-good",
         progressColor: "#3b82f6",
@@ -629,14 +658,14 @@ function Dashboard() {
     if (score >= 40)
       return {
         label: "Average",
-        icon: <ExclamationCircleFilled style={{ marginRight: 4 }} />,
+        icon: <i className="fa-solid fa-circle" style={{ marginRight: 4 }} ></i>,
         color: "#f59e0b",
         cls: "result-card-average",
         progressColor: "#f59e0b",
       };
     return {
       label: "Poor",
-      icon: <WarningFilled style={{ marginRight: 4 }} />,
+      icon: <i className="fa-solid fa-circle" style={{ marginRight: 4 }} ></i>,
       color: "#ef4444",
       cls: "result-card-poor",
       progressColor: "#ef4444",
@@ -651,18 +680,18 @@ function Dashboard() {
     if (risk === "High")
       return (
         <Tag className="burnout-high">
-          <WarningFilled style={{ marginRight: 4 }} /> High
+          <i className="fa-solid fa-circle" style={{ marginRight: 4 }} ></i> High
         </Tag>
       );
     if (risk === "Medium")
       return (
         <Tag className="burnout-medium">
-          <ExclamationCircleFilled style={{ marginRight: 4 }} /> Medium
+          <i className="fa-solid fa-circle" style={{ marginRight: 4 }} ></i> Medium
         </Tag>
       );
     return (
       <Tag className="burnout-low">
-        <CheckCircleFilled style={{ marginRight: 4 }} /> Low
+        <i className="fa-solid fa-circle" style={{ marginRight: 4 }} ></i> Low
       </Tag>
     );
   };
@@ -685,7 +714,7 @@ function Dashboard() {
           }}
         >
           {record.productivity >= 80 && (
-            <StarFilled style={{ color: "#fbbf24", marginRight: 4 }} />
+            <i className="fa-solid fa-circle" style={{ color: "#fbbf24", marginRight: 4 }} ></i>
           )}
           {name}
         </span>
@@ -837,7 +866,7 @@ function Dashboard() {
         <Tooltip title="View Details">
           <Button
             type="text"
-            icon={<EyeOutlined style={{ color: "#60a5fa" }} />}
+            icon={<i className="fa-solid fa-eye" style={{ color: "#60a5fa" }} ></i>}
             onClick={(e) => {
               e.stopPropagation();
               handleRowClick(record);
@@ -872,7 +901,7 @@ function Dashboard() {
       <Header className="app-header">
         <div className="header-brand">
           <div className="header-logo-icon">
-            <DashboardOutlined style={{ fontSize: 20, color: "#fff" }} />
+            <i className="fa-solid fa-chart-line" style={{ fontSize: 20, color: "#fff" }} ></i>
           </div>
           <div>
             <div className="header-title">AI Workforce Analytics</div>
@@ -899,7 +928,7 @@ function Dashboard() {
                 fontWeight: 600,
               }}
             >
-              <TeamOutlined style={{ marginRight: 6 }} />
+              <i className="fa-solid fa-user-group" style={{ marginRight: 6 }} ></i>
               Total Employees
             </Tag>
           </Badge>
@@ -909,15 +938,15 @@ function Dashboard() {
             <Switch
               checked={theme === "light"}
               onChange={toggleTheme}
-              checkedChildren={<BulbFilled />}
-              unCheckedChildren={<BulbOutlined />}
+              checkedChildren={<i className="fa-solid fa-circle"></i>}
+              unCheckedChildren={<i className="fa-solid fa-lightbulb"></i>}
               className="theme-switch"
             />
           </div>
 
           {/* Profile Link */}
           <Button
-            icon={<UserOutlined />}
+            icon={<i className="fa-solid fa-user"></i>}
             onClick={() => navigate('/profile')}
             className="header-nav-btn"
           >
@@ -926,7 +955,7 @@ function Dashboard() {
 
           {/* History Link */}
           <Button
-            icon={<HistoryOutlined />}
+            icon={<i className="fa-solid fa-clock-rotate-left"></i>}
             onClick={() => navigate("/history")}
             className="header-nav-btn"
           >
@@ -935,7 +964,7 @@ function Dashboard() {
 
           {/* Settings Link */}
           <Button
-            icon={<SettingOutlined />}
+            icon={<i className="fa-solid fa-gear"></i>}
             onClick={() => navigate("/settings")}
             className="header-nav-btn"
           >
@@ -944,7 +973,7 @@ function Dashboard() {
 
           {/* Audit Logs Link */}
           <Button
-            icon={<AuditOutlined />}
+            icon={<i className="fa-solid fa-shield-halved"></i>}
             onClick={() => navigate("/audit-logs")}
             className="header-nav-btn"
           >
@@ -953,7 +982,7 @@ function Dashboard() {
 
           {/* Analytics Link */}
           <Button
-            icon={<AreaChartOutlined />}
+            icon={<i className="fa-solid fa-circle"></i>}
             onClick={() => navigate("/analytics")}
             className="header-nav-btn"
           >
@@ -968,7 +997,7 @@ function Dashboard() {
 
           {/* Logout */}
           <Button
-            icon={<LogoutOutlined />}
+            icon={<i className="fa-solid fa-right-from-bracket"></i>}
             onClick={handleLogout}
             className="header-nav-btn"
             danger
@@ -986,13 +1015,13 @@ function Dashboard() {
           <Spin
             spinning={isUploading}
             indicator={
-              <LoadingOutlined style={{ fontSize: 24, color: "#2563eb" }} spin />
+              <i className="fa-solid fa-spinner fa-spin" style={{ fontSize: 24, color: "#2563eb" }} spin ></i>
             }
             tip="Processing with ML models..."
           >
             <div className="upload-inner">
               <div className="upload-icon-area">
-                <CloudUploadOutlined style={{ fontSize: 24, color: "#fff" }} />
+                <i className="fa-solid fa-cloud-arrow-up" style={{ fontSize: 24, color: "#fff" }} ></i>
               </div>
               <div className="upload-text-area">
                 <h3>Upload Employee Dataset</h3>
@@ -1013,7 +1042,7 @@ function Dashboard() {
               />
 
               <Button
-                icon={isUploading ? <LoadingOutlined /> : <UploadOutlined />}
+                icon={isUploading ? <i className="fa-solid fa-spinner fa-spin"></i> : <i className="fa-solid fa-circle"></i>}
                 className="upload-btn"
                 onClick={() =>
                   fileInputRef.current && fileInputRef.current.click()
@@ -1027,15 +1056,15 @@ function Dashboard() {
 
             {uploadedFileNames.length > 0 && (
               <div className="upload-status">
-                <FileTextOutlined style={{ color: "#60a5fa" }} />
+                <i className="fa-solid fa-file-lines" style={{ color: "#60a5fa" }} ></i>
                 {uploadedFileNames.map((name, i) => (
                   <Tag key={i} className="file-tag" title={name}>
-                    <FileTextOutlined style={{ marginRight: 4 }} />
+                    <i className="fa-solid fa-file-lines" style={{ marginRight: 4 }} ></i>
                     {name}
                   </Tag>
                 ))}
                 <span className="upload-record-count">
-                  <CheckCircleFilled style={{ color: "#10b981", marginRight: 4 }} />
+                  <i className="fa-solid fa-circle" style={{ color: "#10b981", marginRight: 4 }} ></i>
                   {totalRecords.toLocaleString()} total records loaded
                 </span>
               </div>
@@ -1049,7 +1078,7 @@ function Dashboard() {
             <Card className="kpi-card glass-card" bordered={false}
               style={{ background: 'linear-gradient(135deg, #0f1f3d 0%, #1a3460 100%)' }}>
               <span className="kpi-icon">
-                <ClockCircleOutlined style={{ color: '#60a5fa' }} />
+                <i className="fa-solid fa-circle" style={{ color: '#60a5fa' }} ></i>
               </span>
               <Statistic
                 title="Last Jira Sync"
@@ -1062,7 +1091,7 @@ function Dashboard() {
             <Card className="kpi-card glass-card" bordered={false}
               style={{ background: 'linear-gradient(135deg, #0f1f3d 0%, #1a3460 100%)' }}>
               <span className="kpi-icon">
-                <ClockCircleOutlined style={{ color: '#a78bfa' }} />
+                <i className="fa-solid fa-circle" style={{ color: '#a78bfa' }} ></i>
               </span>
               <Statistic
                 title="Next Sync"
@@ -1075,7 +1104,7 @@ function Dashboard() {
             <Card className="kpi-card glass-card" bordered={false}
               style={{ background: 'linear-gradient(135deg, #0f1f3d 0%, #1a3460 100%)' }}>
               <span className="kpi-icon">
-                <SafetyOutlined style={{ color: jiraSyncStatus.last_status === 'success' ? '#10b981' : jiraSyncStatus.last_status === 'error' ? '#ef4444' : '#94a3b8' }} />
+                <i className="fa-solid fa-lock" style={{ color: jiraSyncStatus.last_status === 'success' ? '#10b981' : jiraSyncStatus.last_status === 'error' ? '#ef4444' : '#94a3b8' }} ></i>
               </span>
               <Statistic
                 title="Sync Status"
@@ -1090,7 +1119,7 @@ function Dashboard() {
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div>
                   <span className="kpi-icon">
-                    <SyncOutlined style={{ color: '#34d399' }} spin={isSyncingJira} />
+                    <i className="fa-solid fa-arrows-rotate" style={{ color: '#34d399' }} spin={isSyncingJira} ></i>
                   </span>
                   <Statistic
                     title="Records Synced"
@@ -1099,7 +1128,7 @@ function Dashboard() {
                   />
                 </div>
                 <Button
-                  icon={<SyncOutlined />}
+                  icon={<i className="fa-solid fa-arrows-rotate"></i>}
                   onClick={handleJiraSync}
                   loading={isSyncingJira}
                   type="primary"
@@ -1122,7 +1151,7 @@ function Dashboard() {
         {aiSummary && aiSummary.has_data && (
           <Card className="ai-summary-card glass-card" bordered={false} style={{ marginBottom: 24 }}>
             <div className="ai-summary-header">
-              <RobotOutlined style={{ fontSize: 24, color: '#8b5cf6' }} />
+              <i className="fa-solid fa-robot" style={{ fontSize: 24, color: '#8b5cf6' }} ></i>
               <h3>AI Workforce Intelligence</h3>
             </div>
             <Row gutter={[20, 20]}>
@@ -1148,7 +1177,7 @@ function Dashboard() {
                   </div>
                 </div>
                 <div style={{ textAlign: 'center', marginTop: 8 }}>
-                  <HeartOutlined style={{ color: '#8b5cf6', marginRight: 6 }} />
+                  <i className="fa-solid fa-circle" style={{ color: '#8b5cf6', marginRight: 6 }} ></i>
                   <span style={{ color: '#94a3b8', fontSize: 12 }}>Team Health Score</span>
                 </div>
               </Col>
@@ -1165,13 +1194,13 @@ function Dashboard() {
                   <Col span={12}>
                     <div style={{ textAlign: 'center', padding: 12, background: 'rgba(255,255,255,0.03)', borderRadius: 10 }}>
                       <div style={{ fontSize: 24, fontWeight: 700, color: '#10b981' }}>{aiSummary.top_performers || 0}</div>
-                      <div style={{ fontSize: 11, color: '#94a3b8' }}><TrophyOutlined /> Top Performers</div>
+                      <div style={{ fontSize: 11, color: '#94a3b8' }}><i className="fa-solid fa-trophy"></i> Top Performers</div>
                     </div>
                   </Col>
                   <Col span={12}>
                     <div style={{ textAlign: 'center', padding: 12, background: 'rgba(255,255,255,0.03)', borderRadius: 10 }}>
                       <div style={{ fontSize: 24, fontWeight: 700, color: '#f59e0b' }}>{aiSummary.needs_improvement || 0}</div>
-                      <div style={{ fontSize: 11, color: '#94a3b8' }}><RiseOutlined /> Need Help</div>
+                      <div style={{ fontSize: 11, color: '#94a3b8' }}><i className="fa-solid fa-arrow-trend-up"></i> Need Help</div>
                     </div>
                   </Col>
                   <Col span={12}>
@@ -1204,7 +1233,7 @@ function Dashboard() {
             {productivityTrend.length > 0 && (
               <Col xs={24} md={8}>
                 <Card className="trend-card glass-card" bordered={false}
-                  title={<span style={{ color: '#e2e8f0', fontSize: 14, fontWeight: 600 }}><RiseOutlined style={{ marginRight: 8, color: '#10b981' }} />Productivity Trend</span>}
+                  title={<span style={{ color: '#e2e8f0', fontSize: 14, fontWeight: 600 }}><i className="fa-solid fa-arrow-trend-up" style={{ marginRight: 8, color: '#10b981' }} ></i>Productivity Trend</span>}
                 >
                   {productivityTrend.map((item, idx) => (
                     <div key={idx} className="trend-batch-item">
@@ -1225,7 +1254,7 @@ function Dashboard() {
             {Object.keys(featureImportance).length > 0 && (
               <Col xs={24} md={8}>
                 <Card className="feature-importance-card glass-card" bordered={false}
-                  title={<span style={{ color: '#e2e8f0', fontSize: 14, fontWeight: 600 }}><AreaChartOutlined style={{ marginRight: 8, color: '#06b6d4' }} />Burnout Feature Importance</span>}
+                  title={<span style={{ color: '#e2e8f0', fontSize: 14, fontWeight: 600 }}><i className="fa-solid fa-circle" style={{ marginRight: 8, color: '#06b6d4' }} ></i>Burnout Feature Importance</span>}
                 >
                   {Object.entries(featureImportance)
                     .sort((a, b) => b[1] - a[1])
@@ -1253,7 +1282,7 @@ function Dashboard() {
             {jiraInsights.total > 0 && (
               <Col xs={24} md={8}>
                 <Card className="jira-insights-card glass-card" bordered={false}
-                  title={<span style={{ color: '#e2e8f0', fontSize: 14, fontWeight: 600 }}><SyncOutlined style={{ marginRight: 8, color: '#fb923c' }} />Jira Task Insights</span>}
+                  title={<span style={{ color: '#e2e8f0', fontSize: 14, fontWeight: 600 }}><i className="fa-solid fa-arrows-rotate" style={{ marginRight: 8, color: '#fb923c' }} ></i>Jira Task Insights</span>}
                 >
                   <div className="jira-insight-row">
                     <span className="jira-insight-label">✅ Completed</span>
@@ -1282,10 +1311,49 @@ function Dashboard() {
           <SkeletonKPIs />
         ) : (
           <Row gutter={[20, 20]} style={{ marginBottom: 28 }}>
-            <Col xs={24} sm={12} md={8} lg={4}>
+            <Col xs={24} sm={12} md={8} lg={6}>
+              <Card className="kpi-card kpi-card-0 glass-card" bordered={false}>
+                <span className="kpi-icon">
+                  <i className="fa-solid fa-diagram-project" style={{ color: "#3b82f6" }} ></i>
+                </span>
+                <Statistic
+                  title="Connected Projects"
+                  value={projectsConnected}
+                  valueStyle={{ color: "#60a5fa" }}
+                />
+              </Card>
+            </Col>
+
+            <Col xs={24} sm={12} md={8} lg={6}>
               <Card className="kpi-card kpi-card-1 glass-card" bordered={false}>
                 <span className="kpi-icon">
-                  <TeamOutlined style={{ color: "#60a5fa" }} />
+                  <i className="fa-solid fa-arrows-rotate" style={{ color: "#10b981" }} ></i>
+                </span>
+                <Statistic
+                  title="Projects Synced"
+                  value={projectsSynced}
+                  valueStyle={{ color: "#34d399" }}
+                />
+              </Card>
+            </Col>
+
+            <Col xs={24} sm={12} md={8} lg={6}>
+              <Card className="kpi-card kpi-card-1 glass-card" bordered={false}>
+                <span className="kpi-icon">
+                  <i className="fa-solid fa-list-check" style={{ color: "#a78bfa" }} ></i>
+                </span>
+                <Statistic
+                  title="Total Tasks"
+                  value={totalTasks}
+                  valueStyle={{ color: "#c4b5fd" }}
+                />
+              </Card>
+            </Col>
+
+            <Col xs={24} sm={12} md={8} lg={6}>
+              <Card className="kpi-card kpi-card-1 glass-card" bordered={false}>
+                <span className="kpi-icon">
+                  <i className="fa-solid fa-user-group" style={{ color: "#60a5fa" }} ></i>
                 </span>
                 <Statistic
                   title="Total Employees"
@@ -1295,10 +1363,49 @@ function Dashboard() {
               </Card>
             </Col>
 
-            <Col xs={24} sm={12} md={8} lg={4}>
+            <Col xs={24} sm={12} md={8} lg={6}>
+              <Card className="kpi-card kpi-card-1 glass-card" bordered={false}>
+                <span className="kpi-icon">
+                  <i className="fa-solid fa-check-circle" style={{ color: "#10b981" }} ></i>
+                </span>
+                <Statistic
+                  title="Completed Tasks"
+                  value={completedTasks}
+                  valueStyle={{ color: "#34d399" }}
+                />
+              </Card>
+            </Col>
+
+            <Col xs={24} sm={12} md={8} lg={6}>
+              <Card className="kpi-card kpi-card-1 glass-card" bordered={false}>
+                <span className="kpi-icon">
+                  <i className="fa-solid fa-circle-notch" style={{ color: "#f59e0b" }} ></i>
+                </span>
+                <Statistic
+                  title="Open Tasks"
+                  value={openTasks}
+                  valueStyle={{ color: "#fbbf24" }}
+                />
+              </Card>
+            </Col>
+
+            <Col xs={24} sm={12} md={8} lg={6}>
+              <Card className="kpi-card kpi-card-1 glass-card" bordered={false}>
+                <span className="kpi-icon">
+                  <i className="fa-solid fa-clock-rotate-left" style={{ color: "#8b5cf6" }} ></i>
+                </span>
+                <Statistic
+                  title="Total Worklogs"
+                  value={totalWorklogs}
+                  valueStyle={{ color: "#a78bfa" }}
+                />
+              </Card>
+            </Col>
+
+            <Col xs={24} sm={12} md={8} lg={6}>
               <Card className="kpi-card kpi-card-2 glass-card" bordered={false}>
                 <span className="kpi-icon">
-                  <FireOutlined style={{ color: "#f87171" }} />
+                  <i className="fa-solid fa-fire" style={{ color: "#f87171" }} ></i>
                 </span>
                 <Statistic
                   title="High Burnout"
@@ -1308,10 +1415,10 @@ function Dashboard() {
               </Card>
             </Col>
 
-            <Col xs={24} sm={12} md={8} lg={4}>
+            <Col xs={24} sm={12} md={8} lg={6}>
               <Card className="kpi-card kpi-card-3 glass-card" bordered={false}>
                 <span className="kpi-icon">
-                  <RiseOutlined style={{ color: "#34d399" }} />
+                  <i className="fa-solid fa-arrow-trend-up" style={{ color: "#34d399" }} ></i>
                 </span>
                 <Statistic
                   title="Avg Productivity"
@@ -1322,10 +1429,10 @@ function Dashboard() {
               </Card>
             </Col>
 
-            <Col xs={24} sm={12} md={8} lg={4}>
+            <Col xs={24} sm={12} md={8} lg={6}>
               <Card className="kpi-card kpi-card-4 glass-card" bordered={false}>
                 <span className="kpi-icon">
-                  <ClockCircleOutlined style={{ color: "#fbbf24" }} />
+                  <i className="fa-solid fa-circle" style={{ color: "#fbbf24" }} ></i>
                 </span>
                 <Statistic
                   title="Overtime Employees"
@@ -1335,10 +1442,10 @@ function Dashboard() {
               </Card>
             </Col>
 
-            <Col xs={24} sm={12} md={8} lg={4}>
+            <Col xs={24} sm={12} md={8} lg={6}>
               <Card className="kpi-card kpi-card-5 glass-card" bordered={false}>
                 <span className="kpi-icon">
-                  <WarningOutlined style={{ color: "#fb923c" }} />
+                  <i className="fa-solid fa-triangle-exclamation" style={{ color: "#fb923c" }} ></i>
                 </span>
                 <Statistic
                   title="Low Productivity"
@@ -1348,10 +1455,10 @@ function Dashboard() {
               </Card>
             </Col>
 
-            <Col xs={24} sm={12} md={8} lg={4}>
+            <Col xs={24} sm={12} md={8} lg={6}>
               <Card className="kpi-card kpi-card-6 glass-card" bordered={false}>
                 <span className="kpi-icon">
-                  <StarOutlined style={{ color: "#a78bfa" }} />
+                  <i className="fa-solid fa-circle" style={{ color: "#a78bfa" }} ></i>
                 </span>
                 <Statistic
                   title="Top Performers"
@@ -1361,6 +1468,45 @@ function Dashboard() {
               </Card>
             </Col>
           </Row>
+        )}
+
+        {/* ===== PROJECT PERFORMANCE OVERVIEW ===== */}
+        {hasUploaded && projectPerformanceOverview.length > 0 && (
+          <>
+            <h3 style={{ color: "#f8fafc", marginBottom: 16 }}>Project Performance Overview</h3>
+            <Row gutter={[20, 20]} style={{ marginBottom: 28 }}>
+              {projectPerformanceOverview.map((proj, idx) => (
+                <Col xs={24} sm={12} md={8} lg={8} key={idx}>
+                  <Card className="glass-card" bordered={false}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                      <span style={{ fontSize: 18, fontWeight: 600, color: "#93c5fd" }}>{proj.project_name}</span>
+                      <Tag color={proj.health_score >= 80 ? "success" : proj.health_score >= 50 ? "warning" : "error"}>
+                        Health: {proj.health_score}%
+                      </Tag>
+                    </div>
+                    <Row gutter={8}>
+                      <Col span={12} style={{ marginBottom: 8 }}>
+                        <div style={{ color: "#94a3b8", fontSize: 12 }}>Employees</div>
+                        <div style={{ fontSize: 16, fontWeight: 500 }}>{proj.employee_count}</div>
+                      </Col>
+                      <Col span={12} style={{ marginBottom: 8 }}>
+                        <div style={{ color: "#94a3b8", fontSize: 12 }}>Tasks</div>
+                        <div style={{ fontSize: 16, fontWeight: 500 }}>{proj.task_count}</div>
+                      </Col>
+                      <Col span={12}>
+                        <div style={{ color: "#94a3b8", fontSize: 12 }}>Productivity</div>
+                        <div style={{ fontSize: 16, fontWeight: 500, color: "#34d399" }}>{proj.productivity_score}%</div>
+                      </Col>
+                      <Col span={12}>
+                        <div style={{ color: "#94a3b8", fontSize: 12 }}>High Burnout</div>
+                        <div style={{ fontSize: 16, fontWeight: 500, color: "#f87171" }}>{proj.burnout_risk_count}</div>
+                      </Col>
+                    </Row>
+                  </Card>
+                </Col>
+              ))}
+            </Row>
+          </>
         )}
 
         {/* ===== EXECUTIVE KPIs ===== */}
@@ -1382,9 +1528,8 @@ function Dashboard() {
               <Card
                 title={
                   <span>
-                    <BarChartOutlined
-                      style={{ marginRight: 8, color: "#60a5fa" }}
-                    />
+                    <i className="fa-solid fa-circle" style={{ marginRight: 8, color: "#60a5fa" }}
+                    ></i>
                     ML Burnout Distribution
                   </span>
                 }
@@ -1428,9 +1573,8 @@ function Dashboard() {
               <Card
                 title={
                   <span>
-                    <RiseOutlined
-                      style={{ marginRight: 8, color: "#34d399" }}
-                    />
+                    <i className="fa-solid fa-arrow-trend-up" style={{ marginRight: 8, color: "#34d399" }}
+                    ></i>
                     Weekly Productivity Forecast
                   </span>
                 }
@@ -1504,9 +1648,8 @@ function Dashboard() {
                         marginBottom: 12,
                       }}
                     >
-                      <SafetyOutlined
-                        style={{ color: "#10b981", fontSize: 20 }}
-                      />
+                      <i className="fa-solid fa-lock" style={{ color: "#10b981", fontSize: 20 }}
+                      ></i>
                       <Text
                         style={{
                           color: "var(--text-secondary)",
@@ -1569,7 +1712,7 @@ function Dashboard() {
                           fontSize: 11,
                         }}
                       >
-                        <SafetyCertificateFilled style={{ marginRight: 4 }} />
+                        <i className="fa-solid fa-circle" style={{ marginRight: 4 }} ></i>
                         Random Forest Model
                       </Tag>
                     </div>
@@ -1581,9 +1724,8 @@ function Dashboard() {
                   <Card
                     title={
                       <span>
-                        <TrophyOutlined
-                          style={{ marginRight: 8, color: "#fbbf24" }}
-                        />
+                        <i className="fa-solid fa-trophy" style={{ marginRight: 8, color: "#fbbf24" }}
+                        ></i>
                         Top Performers
                       </span>
                     }
@@ -1638,28 +1780,27 @@ function Dashboard() {
         {filteredEmployees.length > 0 && (
           <Row gutter={[20, 20]} style={{ marginBottom: 28 }}>
 
-            {/* Department Productivity Bar Chart */}
+            {/* Project Productivity Bar Chart */}
             <Col xs={24} lg={8}>
               <Card
                 title={
                   <span>
-                    <BarChartOutlined
-                      style={{ marginRight: 8, color: "#a78bfa" }}
-                    />
-                    Department Productivity
+                    <i className="fa-solid fa-circle" style={{ marginRight: 8, color: "#a78bfa" }}
+                    ></i>
+                    Project Productivity
                   </span>
                 }
                 className="chart-card glass-card"
                 bordered={false}
               >
                 <ResponsiveContainer width="100%" height={280}>
-                  <BarChart data={departmentProductivity}>
+                  <BarChart data={projectProductivity}>
                     <CartesianGrid
                       strokeDasharray="3 3"
                       stroke="rgba(37,99,235,0.1)"
                     />
                     <XAxis
-                      dataKey="department"
+                      dataKey="project"
                       stroke="#64748b"
                       tick={{ fill: "#94a3b8", fontSize: 10 }}
                       interval={0}
@@ -1692,9 +1833,8 @@ function Dashboard() {
               <Card
                 title={
                   <span>
-                    <AreaChartOutlined
-                      style={{ marginRight: 8, color: "#34d399" }}
-                    />
+                    <i className="fa-solid fa-circle" style={{ marginRight: 8, color: "#34d399" }}
+                    ></i>
                     Productivity Trend
                   </span>
                 }
@@ -1790,28 +1930,27 @@ function Dashboard() {
               </Card>
             </Col>
 
-            {/* Burnout Comparison Chart */}
+            {/* Project Burnout Chart */}
             <Col xs={24} lg={8}>
               <Card
                 title={
                   <span>
-                    <FireOutlined
-                      style={{ marginRight: 8, color: "#f87171" }}
-                    />
-                    Burnout by Department
+                    <i className="fa-solid fa-fire" style={{ marginRight: 8, color: "#f87171" }}
+                    ></i>
+                    Project Burnout
                   </span>
                 }
                 className="chart-card glass-card"
                 bordered={false}
               >
                 <ResponsiveContainer width="100%" height={280}>
-                  <BarChart data={departmentBurnout}>
+                  <BarChart data={projectBurnout}>
                     <CartesianGrid
                       strokeDasharray="3 3"
-                      stroke="rgba(37,99,235,0.1)"
+                      stroke="rgba(255,255,255,0.05)"
                     />
                     <XAxis
-                      dataKey="department"
+                      dataKey="project"
                       stroke="#64748b"
                       tick={{ fill: "#94a3b8", fontSize: 10 }}
                       interval={0}
@@ -1856,6 +1995,101 @@ function Dashboard() {
           </Row>
         )}
 
+        {/* ===== CHARTS ROW 3: Department Charts ===== */}
+        {hasUploaded && employees.length > 0 && (
+          <Row gutter={[20, 20]} style={{ marginBottom: 24 }}>
+            <Col xs={24} lg={12}>
+              <Card
+                title={
+                  <span>
+                    <i className="fa-solid fa-building" style={{ marginRight: 8, color: "#60a5fa" }}
+                    ></i>
+                    Department Productivity
+                  </span>
+                }
+                className="chart-card glass-card"
+                bordered={false}
+              >
+                <ResponsiveContainer width="100%" height={280}>
+                  <BarChart data={departmentProductivity}>
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      stroke="rgba(37,99,235,0.1)"
+                    />
+                    <XAxis
+                      dataKey="department"
+                      stroke="#64748b"
+                      tick={{ fill: "#94a3b8", fontSize: 10 }}
+                      interval={0}
+                      angle={-20}
+                      textAnchor="end"
+                      height={50}
+                    />
+                    <YAxis
+                      stroke="#64748b"
+                      tick={{ fill: "#94a3b8", fontSize: 12 }}
+                    />
+                    <RechartsTooltip
+                      contentStyle={chartTooltipStyle}
+                      itemStyle={{ color: "#e2e8f0" }}
+                    />
+                    <Bar
+                      dataKey="avgProductivity"
+                      name="Avg Productivity"
+                      fill="#60a5fa"
+                      radius={[6, 6, 0, 0]}
+                      maxBarSize={40}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              </Card>
+            </Col>
+
+            <Col xs={24} lg={12}>
+              <Card
+                title={
+                  <span>
+                    <i className="fa-solid fa-fire" style={{ marginRight: 8, color: "#f87171" }}
+                    ></i>
+                    Department Burnout
+                  </span>
+                }
+                className="chart-card glass-card"
+                bordered={false}
+              >
+                <ResponsiveContainer width="100%" height={280}>
+                  <BarChart data={departmentBurnout}>
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      stroke="rgba(255,255,255,0.05)"
+                    />
+                    <XAxis
+                      dataKey="department"
+                      stroke="#64748b"
+                      tick={{ fill: "#94a3b8", fontSize: 10 }}
+                      interval={0}
+                      angle={-20}
+                      textAnchor="end"
+                      height={50}
+                    />
+                    <YAxis
+                      stroke="#64748b"
+                      tick={{ fill: "#94a3b8", fontSize: 12 }}
+                    />
+                    <RechartsTooltip
+                      contentStyle={chartTooltipStyle}
+                      itemStyle={{ color: "#e2e8f0" }}
+                    />
+                    <Bar dataKey="High" stackId="a" fill="#ef4444" maxBarSize={40} />
+                    <Bar dataKey="Medium" stackId="a" fill="#f59e0b" maxBarSize={40} />
+                    <Bar dataKey="Low" stackId="a" fill="#10b981" maxBarSize={40} radius={[6, 6, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </Card>
+            </Col>
+          </Row>
+        )}
+
         {/* ===== SYSTEM HEALTH + DEPARTMENT RANKING ===== */}
         {hasUploaded && employees.length > 0 && (
           <Row gutter={[20, 20]} style={{ marginBottom: 24 }}>
@@ -1863,7 +2097,7 @@ function Dashboard() {
               <SystemHealthWidget />
             </Col>
             <Col xs={24} lg={16}>
-              <DepartmentRanking employees={filteredEmployees} />
+              <DepartmentRanking employees={filteredEmployees} rankings={departmentRankings} />
             </Col>
           </Row>
         )}
@@ -1878,9 +2112,8 @@ function Dashboard() {
             <Col xs={24} sm={8} md={6}>
               <Input
                 prefix={
-                  <SearchOutlined
-                    style={{ color: "rgba(148,163,184,0.5)" }}
-                  />
+                  <i className="fa-solid fa-magnifying-glass" style={{ color: "rgba(148,163,184,0.5)" }}
+                  ></i>
                 }
                 placeholder="Search Employee..."
                 value={search}
@@ -1893,18 +2126,18 @@ function Dashboard() {
 
             <Col xs={24} sm={8} md={6}>
               <Select
-                value={departmentFilter}
-                onChange={(value) => setDepartmentFilter(value)}
+                value={projectFilter}
+                onChange={(value) => setProjectFilter(value)}
                 className="dark-select"
                 style={{ width: "100%" }}
-                placeholder="All Departments"
+                placeholder="All Projects"
                 popupClassName="dark-select-dropdown"
               >
-                <Option value="All Departments">All Departments</Option>
-                {[...new Set(employees.map((e) => e.project_name))].map(
-                  (dept, index) => (
-                    <Option key={index} value={dept}>
-                      {dept}
+                <Option value="All Projects">All Projects</Option>
+                {projectOptions.map(
+                  (project, index) => (
+                    <Option key={index} value={project}>
+                      {project}
                     </Option>
                   )
                 )}
@@ -1929,7 +2162,7 @@ function Dashboard() {
 
             <Col xs={24} sm={24} md={7} style={{ display: "flex", gap: 8 }}>
               <Button
-                icon={<FilterOutlined />}
+                icon={<i className="fa-solid fa-filter"></i>}
                 onClick={applyFilters}
                 className="filter-btn"
                 type="primary"
@@ -1950,7 +2183,7 @@ function Dashboard() {
                 Reset
               </Button>
               <Button
-                icon={<ExportOutlined />}
+                icon={<i className="fa-solid fa-file-export"></i>}
                 onClick={exportCSV}
                 className="export-btn"
                 type="primary"
@@ -1959,7 +2192,7 @@ function Dashboard() {
                 CSV
               </Button>
               <Button
-                icon={<FilePdfOutlined />}
+                icon={<i className="fa-solid fa-file-pdf"></i>}
                 onClick={handleExportPDF}
                 className="pdf-btn"
                 type="primary"
@@ -1978,7 +2211,7 @@ function Dashboard() {
           <Card
             title={
               <span>
-                <TeamOutlined style={{ marginRight: 8, color: "#60a5fa" }} />
+                <i className="fa-solid fa-user-group" style={{ marginRight: 8, color: "#60a5fa" }} ></i>
                 Employee Analytics
                 {filteredEmployees.length > 0 && (
                   <Tag
@@ -2002,7 +2235,7 @@ function Dashboard() {
             extra={
               <div style={{ display: "flex", gap: 8 }}>
                 <Button
-                  icon={<ExportOutlined />}
+                  icon={<i className="fa-solid fa-file-export"></i>}
                   onClick={exportCSV}
                   className="export-btn"
                   size="small"
@@ -2011,7 +2244,7 @@ function Dashboard() {
                   Export CSV
                 </Button>
                 <Button
-                  icon={<FilePdfOutlined />}
+                  icon={<i className="fa-solid fa-file-pdf"></i>}
                   onClick={handleExportPDF}
                   className="pdf-btn"
                   size="small"
@@ -2071,7 +2304,7 @@ function Dashboard() {
         <Card
           title={
             <span>
-              <RobotOutlined style={{ marginRight: 8, color: "#a78bfa" }} />
+              <i className="fa-solid fa-robot" style={{ marginRight: 8, color: "#a78bfa" }} ></i>
               AI Productivity Prediction
               <Tag
                 style={{
@@ -2262,7 +2495,7 @@ function Dashboard() {
           <div style={{ marginTop: 20 }}>
             <Spin spinning={isPredicting} tip="Analyzing with ML model...">
               <Button
-                icon={<ThunderboltOutlined />}
+                icon={<i className="fa-solid fa-circle"></i>}
                 onClick={predictBurnout}
                 className="predict-btn"
                 type="primary"
@@ -2362,24 +2595,24 @@ function Dashboard() {
                       {/* AI Recommendations in prediction result */}
                       <div style={{ marginTop: 12 }}>
                         <Text style={{ color: "rgba(255,255,255,0.6)", fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}>
-                          <BulbOutlined style={{ marginRight: 4 }} />
+                          <i className="fa-solid fa-lightbulb" style={{ marginRight: 4 }} ></i>
                           AI Recommendations
                         </Text>
                         <div style={{ marginTop: 6 }}>
                           {score >= 80 && (
                             <div className="pred-rec-item">
-                              <ThunderboltOutlined style={{ color: "#a78bfa", marginRight: 8 }} />
+                              <i className="fa-solid fa-circle" style={{ color: "#a78bfa", marginRight: 8 }} ></i>
                               Consider for leadership development and mentoring roles
                             </div>
                           )}
                           {score >= 60 && score < 80 && (
                             <>
                               <div className="pred-rec-item">
-                                <ThunderboltOutlined style={{ color: "#a78bfa", marginRight: 8 }} />
+                                <i className="fa-solid fa-circle" style={{ color: "#a78bfa", marginRight: 8 }} ></i>
                                 Improve focus sessions with dedicated deep work blocks
                               </div>
                               <div className="pred-rec-item">
-                                <ThunderboltOutlined style={{ color: "#a78bfa", marginRight: 8 }} />
+                                <i className="fa-solid fa-circle" style={{ color: "#a78bfa", marginRight: 8 }} ></i>
                                 Monitor workload balance and ensure adequate rest
                               </div>
                             </>
@@ -2387,11 +2620,11 @@ function Dashboard() {
                           {score >= 40 && score < 60 && (
                             <>
                               <div className="pred-rec-item">
-                                <ThunderboltOutlined style={{ color: "#a78bfa", marginRight: 8 }} />
+                                <i className="fa-solid fa-circle" style={{ color: "#a78bfa", marginRight: 8 }} ></i>
                                 Schedule regular breaks and reduce overtime workload
                               </div>
                               <div className="pred-rec-item">
-                                <ThunderboltOutlined style={{ color: "#a78bfa", marginRight: 8 }} />
+                                <i className="fa-solid fa-circle" style={{ color: "#a78bfa", marginRight: 8 }} ></i>
                                 Assign fewer parallel tasks to improve completion rate
                               </div>
                             </>
@@ -2399,15 +2632,15 @@ function Dashboard() {
                           {score < 40 && (
                             <>
                               <div className="pred-rec-item">
-                                <ThunderboltOutlined style={{ color: "#a78bfa", marginRight: 8 }} />
+                                <i className="fa-solid fa-circle" style={{ color: "#a78bfa", marginRight: 8 }} ></i>
                                 Provide technical training and skill development resources
                               </div>
                               <div className="pred-rec-item">
-                                <ThunderboltOutlined style={{ color: "#a78bfa", marginRight: 8 }} />
+                                <i className="fa-solid fa-circle" style={{ color: "#a78bfa", marginRight: 8 }} ></i>
                                 Conduct one-on-one wellness check with manager
                               </div>
                               <div className="pred-rec-item">
-                                <ThunderboltOutlined style={{ color: "#a78bfa", marginRight: 8 }} />
+                                <i className="fa-solid fa-circle" style={{ color: "#a78bfa", marginRight: 8 }} ></i>
                                 Review task complexity and provide mentorship support
                               </div>
                             </>
@@ -2425,6 +2658,7 @@ function Dashboard() {
         <EmployeeModal
           visible={showModal}
           employee={selectedEmployee}
+          aggregatedEmployee={selectedEmployee ? aggregatedEmployees[selectedEmployee.employee_name] : null}
           onClose={() => {
             setShowModal(false);
             setSelectedEmployee(null);

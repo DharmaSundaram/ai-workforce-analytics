@@ -1,13 +1,9 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import AILogo from '../components/AILogo';
 import { Input, Button, notification, Checkbox } from "antd";
-import {
-  UserOutlined,
-  LockOutlined,
-  LoadingOutlined,
-  SafetyCertificateOutlined,
-  DashboardOutlined,
-} from "@ant-design/icons";
+import { motion } from "framer-motion";
+
 
 const BACKEND_URL = "http://127.0.0.1:5000";
 
@@ -39,9 +35,17 @@ function LoginPage() {
       const result = await response.json();
 
       if (result.success) {
+        const sessionHours = rememberMe ? 24 * 30 : 8;
+        const expiresAt = new Date(Date.now() + sessionHours * 60 * 60 * 1000).toISOString();
         localStorage.setItem("isAuthenticated", "true");
         localStorage.setItem("loginTime", new Date().toISOString());
+        localStorage.setItem("sessionExpiresAt", expiresAt);
         localStorage.setItem("user", JSON.stringify(result.user));
+        // Save JWT token if provided
+        if (result.access_token) {
+          localStorage.setItem("jwt_token", result.access_token);
+        }
+        
         api.success({
           message: "Login Successful",
           description: "Welcome to AI Workforce Analytics",
@@ -76,48 +80,108 @@ function LoginPage() {
   };
 
   return (
-    <div className="login-container">
+    <div style={{
+      minHeight: '100vh',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      background: '#020617', // Deep futuristic dark
+      position: 'relative',
+      overflow: 'hidden'
+    }}>
       {contextHolder}
 
-      {/* Animated background elements */}
-      <div className="login-bg-orb login-bg-orb-1" />
-      <div className="login-bg-orb login-bg-orb-2" />
-      <div className="login-bg-orb login-bg-orb-3" />
+      {/* Animated Digital Grid Background */}
+      <div style={{
+        position: 'absolute',
+        top: 0, left: 0, right: 0, bottom: 0,
+        backgroundImage: `
+          linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px)
+        `,
+        backgroundSize: '40px 40px',
+        opacity: 0.5,
+        zIndex: 0
+      }} />
+      
+      {/* Floating Orbs */}
+      <motion.div
+        animate={{ y: [0, -30, 0], opacity: [0.3, 0.6, 0.3] }}
+        transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
+        style={{
+          position: 'absolute', top: '10%', left: '15%', width: 300, height: 300,
+          background: 'radial-gradient(circle, var(--accent-glow) 0%, transparent 70%)',
+          zIndex: 0, borderRadius: '50%', filter: 'blur(40px)'
+        }}
+      />
+      <motion.div
+        animate={{ y: [0, 30, 0], opacity: [0.2, 0.5, 0.2] }}
+        transition={{ duration: 7, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+        style={{
+          position: 'absolute', bottom: '10%', right: '15%', width: 400, height: 400,
+          background: 'radial-gradient(circle, rgba(139, 92, 246, 0.15) 0%, transparent 70%)',
+          zIndex: 0, borderRadius: '50%', filter: 'blur(60px)'
+        }}
+      />
 
-      <div className="login-card">
-        {/* Logo Area */}
-        <div className="login-logo-area">
-          <div className="login-logo-icon">
-            <DashboardOutlined style={{ fontSize: 28, color: "#ffffff" }} />
-          </div>
-          <h1 className="login-title">AI Workforce Analytics</h1>
-          <p className="login-subtitle">
-            ML-powered employee intelligence platform
-          </p>
-        </div>
+      {/* Login Card */}
+      <motion.div 
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, ease: "easeOut" }}
+        className="glass-panel"
+        style={{
+          width: '100%',
+          maxWidth: 440,
+          padding: '40px',
+          zIndex: 1,
+          position: 'relative',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center'
+        }}
+      >
+        <AILogo size={64} glow={true} />
+        
+        <h1 style={{ 
+          color: 'var(--text-primary)', 
+          marginTop: 24, 
+          marginBottom: 8,
+          fontSize: 28,
+          fontWeight: 700,
+          textAlign: 'center',
+          letterSpacing: '-0.5px'
+        }}>
+          AI Workforce Analytics
+        </h1>
+        <p style={{
+          color: 'var(--text-muted)',
+          fontSize: 14,
+          marginBottom: 32,
+          textAlign: 'center'
+        }}>
+          Enterprise AI Workforce Intelligence Platform
+        </p>
 
-        {/* Form */}
-        <div className="login-form">
-          <div className="login-field">
-            <label className="login-label">
-              <UserOutlined style={{ marginRight: 6 }} />
+        <div style={{ width: '100%' }}>
+          <div style={{ marginBottom: 20 }}>
+            <label style={{ display: 'block', color: 'var(--text-secondary)', marginBottom: 8, fontSize: 13, fontWeight: 500 }}>
               Email or Phone Number
             </label>
             <Input
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               onKeyPress={handleKeyPress}
-              placeholder="Enter email or phone number"
+              placeholder="Enter credentials"
               size="large"
-              className="login-input"
-              prefix={<UserOutlined style={{ color: "rgba(148,163,184,0.4)" }} />}
+              prefix={<i className="fa-solid fa-user" style={{ color: "rgba(148,163,184,0.6)" }} ></i>}
+              style={{ background: 'rgba(15, 23, 42, 0.5)', borderColor: 'rgba(255,255,255,0.1)', color: 'white' }}
               autoFocus
             />
           </div>
 
-          <div className="login-field">
-            <label className="login-label">
-              <LockOutlined style={{ marginRight: 6 }} />
+          <div style={{ marginBottom: 20 }}>
+            <label style={{ display: 'block', color: 'var(--text-secondary)', marginBottom: 8, fontSize: 13, fontWeight: 500 }}>
               Password
             </label>
             <Input.Password
@@ -126,58 +190,77 @@ function LoginPage() {
               onKeyPress={handleKeyPress}
               placeholder="Enter your password"
               size="large"
-              className="login-input"
-              prefix={<LockOutlined style={{ color: "rgba(148,163,184,0.4)" }} />}
+              prefix={<i className="fa-solid fa-lock" style={{ color: "rgba(148,163,184,0.6)" }} ></i>}
+              style={{ background: 'rgba(15, 23, 42, 0.5)', borderColor: 'rgba(255,255,255,0.1)', color: 'white' }}
             />
           </div>
 
-          <div style={{ marginBottom: 12 }}>
-            <Checkbox checked={rememberMe} onChange={e => setRememberMe(e.target.checked)} style={{color: 'var(--text-muted)'}}>Remember Me</Checkbox>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+            <Checkbox 
+              checked={rememberMe} 
+              onChange={e => setRememberMe(e.target.checked)} 
+              style={{ color: 'var(--text-muted)' }}
+            >
+              Remember Me
+            </Checkbox>
+            <span
+              onClick={() => navigate('/forgot-password')}
+              style={{ color: 'var(--accent-color)', cursor: 'pointer', fontSize: 13, fontWeight: 500 }}
+            >
+              Forgot Password?
+            </span>
           </div>
 
           {error && (
-            <div className="login-error">
-              <SafetyCertificateOutlined style={{ marginRight: 6 }} />
+            <motion.div 
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              style={{ 
+                background: 'rgba(255, 0, 0, 0.1)', 
+                color: '#FF0000', 
+                padding: '10px 14px', 
+                borderRadius: 8, 
+                marginBottom: 20,
+                fontSize: 13,
+                display: 'flex',
+                alignItems: 'center',
+                border: '1px solid rgba(255, 0, 0, 0.2)'
+              }}
+            >
+              <i className="fa-solid fa-triangle-exclamation" style={{ marginRight: 8 }} ></i>
               {error}
-            </div>
+            </motion.div>
           )}
 
           <Button
             type="primary"
             onClick={handleLogin}
             loading={loading}
-            className="login-btn"
             size="large"
             block
-            icon={loading ? <LoadingOutlined /> : <LockOutlined />}
+            style={{ 
+              background: 'var(--accent-gradient)', 
+              border: 'none', 
+              fontWeight: 600,
+              height: 48,
+              borderRadius: 8,
+              boxShadow: '0 4px 14px var(--accent-glow)'
+            }}
+            icon={loading ? <i className="fa-solid fa-spinner fa-spin"></i> : <i className="fa-solid fa-right-to-bracket"></i>}
           >
             {loading ? "Authenticating..." : "Sign In"}
           </Button>
 
-          <div style={{ textAlign: 'center', marginTop: 12 }}>
-            <span
-              onClick={() => navigate('/forgot-password')}
-              style={{ color: '#60a5fa', cursor: 'pointer', fontSize: 13 }}
-            >
-              Forgot Password?
-            </span>
-          </div>
-          <div style={{ textAlign: 'center', marginTop: 12 }}>
+          <div style={{ textAlign: 'center', marginTop: 24 }}>
             <span
               onClick={() => navigate('/register')}
-              style={{ color: '#60a5fa', cursor: 'pointer', fontSize: 13 }}
+              style={{ color: 'var(--text-muted)', cursor: 'pointer', fontSize: 13 }}
             >
-              Don't have an account? Register
+              Don't have an account? <span style={{ color: 'var(--accent-color)', fontWeight: 500 }}>Register</span>
             </span>
           </div>
         </div>
-
-        {/* Footer */}
-        <div className="login-footer">
-          <SafetyCertificateOutlined style={{ marginRight: 6, color: "#10b981" }} />
-          <span>Secured with enterprise-grade authentication</span>
-        </div>
-      </div>
+      </motion.div>
     </div>
   );
 }

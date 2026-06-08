@@ -1,28 +1,40 @@
 import React, { useMemo } from 'react';
 import { Row, Col, Progress, Card, Empty } from 'antd';
-import { TrophyOutlined } from '@ant-design/icons';
 
-const DepartmentRanking = ({ employees }) => {
+const DepartmentRanking = ({ employees, rankings: providedRankings = [] }) => {
   const rankings = useMemo(() => {
+    if (providedRankings && providedRankings.length > 0) {
+      return providedRankings.map((dept, index) => ({
+        name: dept.department_name || dept.department || 'Unknown',
+        avgProductivity: Math.round(dept.average_productivity || 0),
+        healthScore: Math.round(dept.health_score || 0),
+        memberCount: dept.employee_count || 0,
+        highBurnoutCount: dept.high_burnout_count || 0,
+        burnoutRisk: dept.burnout_risk || 'Low',
+        rank: dept.rank || index + 1,
+      }));
+    }
+
     if (!employees || employees.length === 0) return [];
 
     const groups = {};
     employees.forEach((emp) => {
-      const dept = emp.project_name || 'Unknown';
+      const dept = emp.department || 'Unknown';
       if (!groups[dept]) groups[dept] = [];
       groups[dept].push(emp);
     });
 
     const deptStats = Object.entries(groups).map(([name, members]) => {
-      const memberCount = members.length;
+      const recordCount = members.length || 1;
+      const memberCount = new Set(members.map((m) => m.employee_name)).size;
       const avgProductivity =
-        members.reduce((sum, m) => sum + (m.productivity || 0), 0) / memberCount;
+        members.reduce((sum, m) => sum + (m.productivity || 0), 0) / recordCount;
       const highBurnoutCount = members.filter(
         (m) => m.burnout_risk === 'High'
       ).length;
-      const highBurnoutPct = highBurnoutCount / memberCount;
+      const highBurnoutPct = highBurnoutCount / recordCount;
       const avgFocusScore =
-        members.reduce((sum, m) => sum + (m.focus_score || 0), 0) / memberCount;
+        members.reduce((sum, m) => sum + (m.focus_score || 0), 0) / recordCount;
       const healthScore =
         avgProductivity * 0.5 +
         (100 - highBurnoutPct * 100) * 0.3 +
@@ -34,18 +46,13 @@ const DepartmentRanking = ({ employees }) => {
         healthScore: Math.round(healthScore),
         memberCount,
         highBurnoutCount,
+        burnoutRisk: highBurnoutCount > 0 ? 'High' : 'Low',
       };
     });
 
     deptStats.sort((a, b) => b.healthScore - a.healthScore);
-    return deptStats.slice(0, 6);
-  }, [employees]);
-
-  const getRankBadge = (index) => {
-    const badges = ['🥇', '🥈', '🥉'];
-    if (index < 3) return badges[index];
-    return `#${index + 1}`;
-  };
+    return deptStats.map((dept, index) => ({ ...dept, rank: index + 1 }));
+  }, [employees, providedRankings]);
 
   const getBorderColor = (index) => {
     if (index === 0) return '#FFD700';
@@ -66,7 +73,7 @@ const DepartmentRanking = ({ employees }) => {
       bordered={false}
       title={
         <span style={{ color: '#ffffff', fontSize: 16, fontWeight: 600 }}>
-          <TrophyOutlined style={{ marginRight: 8, color: '#a855f7' }} />
+          <i className="fa-solid fa-trophy" style={{ marginRight: 8, color: '#a855f7' }} ></i>
           Department Rankings
         </span>
       }
@@ -88,7 +95,7 @@ const DepartmentRanking = ({ employees }) => {
               <div
                 style={{
                   background: 'rgba(30,41,59,0.5)',
-                  borderRadius: 12,
+                  borderRadius: 8,
                   padding: 14,
                   borderLeft: `3px solid ${getBorderColor(index)}`,
                   height: '100%',
@@ -101,8 +108,8 @@ const DepartmentRanking = ({ employees }) => {
                     marginBottom: 10,
                   }}
                 >
-                  <span style={{ fontSize: 22, marginRight: 10 }}>
-                    {getRankBadge(index)}
+                  <span style={{ fontSize: 18, marginRight: 10, color: getBorderColor(index), fontWeight: 800 }}>
+                    #{dept.rank || index + 1}
                   </span>
                   <span
                     style={{
@@ -146,8 +153,7 @@ const DepartmentRanking = ({ employees }) => {
                     color: 'rgba(255,255,255,0.5)',
                   }}
                 >
-                  {dept.memberCount} members • {dept.highBurnoutCount} high
-                  burnout • {dept.avgProductivity}% avg prod
+                  {dept.memberCount} members | {dept.highBurnoutCount} high burnout | {dept.avgProductivity}% avg prod | {dept.burnoutRisk} risk
                 </div>
               </div>
             </Col>

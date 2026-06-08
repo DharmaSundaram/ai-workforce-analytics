@@ -76,7 +76,8 @@ def jira_auto_sync():
 
     with jira_sync_app.app_context():
         try:
-            from app import EmployeeHistory, get_jira_credentials
+            from models import EmployeeHistory
+            from app import get_jira_credentials
             from database import db
             import jira_sync
 

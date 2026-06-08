@@ -26,8 +26,13 @@ CREATE INDEX IF NOT EXISTS idx_user_phone ON user(phone);
 CREATE TABLE IF NOT EXISTS employee_history (
     id              INTEGER PRIMARY KEY AUTOINCREMENT,
     employee_name   VARCHAR(100),
+    project_id      VARCHAR(100),
+    project_key     VARCHAR(100),
+    project_name    VARCHAR(255),
     project         VARCHAR(100),
+    department      VARCHAR(100),
     task            VARCHAR(100),
+    status          VARCHAR(50),
     productivity    REAL,
     burnout         VARCHAR(50),
     working_hours   REAL,
@@ -37,8 +42,27 @@ CREATE TABLE IF NOT EXISTS employee_history (
 );
 
 CREATE INDEX IF NOT EXISTS idx_eh_employee    ON employee_history(employee_name);
+CREATE INDEX IF NOT EXISTS idx_eh_project_key ON employee_history(project_key);
+CREATE INDEX IF NOT EXISTS idx_eh_department  ON employee_history(department);
 CREATE INDEX IF NOT EXISTS idx_eh_batch       ON employee_history(upload_batch_id);
 CREATE INDEX IF NOT EXISTS idx_eh_upload_time ON employee_history(upload_time);
+
+-- =========================================
+-- JIRA PROJECTS (Connected project registry)
+-- =========================================
+CREATE TABLE IF NOT EXISTS jira_projects (
+    id                INTEGER PRIMARY KEY AUTOINCREMENT,
+    project_key       VARCHAR(50) NOT NULL,
+    project_name      VARCHAR(200) NOT NULL,
+    project_type      VARCHAR(50) DEFAULT 'software',
+    is_active         BOOLEAN DEFAULT 1,
+    is_synced         BOOLEAN DEFAULT 1,
+    last_sync         DATETIME,
+    last_sync_records INTEGER DEFAULT 0,
+    created_at        DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_jira_projects_key ON jira_projects(project_key);
 
 -- =========================================
 -- AUDIT LOG (Activity Tracking)
@@ -62,6 +86,8 @@ CREATE INDEX IF NOT EXISTS idx_audit_timestamp ON audit_log(timestamp);
 -- =========================================
 CREATE TABLE IF NOT EXISTS jira_sync_log (
     id                INTEGER PRIMARY KEY AUTOINCREMENT,
+    project_name      VARCHAR(255) DEFAULT 'Unknown',
+    project_key       VARCHAR(100) DEFAULT 'Unknown',
     sync_time         DATETIME DEFAULT CURRENT_TIMESTAMP,
     total_records     INTEGER DEFAULT 0,
     status            VARCHAR(20) DEFAULT 'success' CHECK (status IN ('success', 'failed', 'partial')),

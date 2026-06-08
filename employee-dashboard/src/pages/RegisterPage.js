@@ -1,16 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Input, Button, notification } from "antd";
-import {
-  UserOutlined,
-  MailOutlined,
-  PhoneOutlined,
-  LockOutlined,
-  LoadingOutlined,
-  SafetyCertificateOutlined,
-  DashboardOutlined,
-  UserAddOutlined,
-} from "@ant-design/icons";
+
 
 const BACKEND_URL = "http://127.0.0.1:5000";
 
@@ -116,7 +107,7 @@ function RegisterPage() {
         {/* Logo Area */}
         <div className="login-logo-area">
           <div className="login-logo-icon">
-            <DashboardOutlined style={{ fontSize: 28, color: "#ffffff" }} />
+            <i className="fa-solid fa-chart-line" style={{ fontSize: 28, color: "#ffffff" }} ></i>
           </div>
           <h1 className="login-title">Create Account</h1>
           <p className="login-subtitle">
@@ -128,7 +119,7 @@ function RegisterPage() {
         <div className="login-form">
           <div className="login-field">
             <label className="login-label">
-              <UserOutlined style={{ marginRight: 6 }} />
+              <i className="fa-solid fa-user" style={{ marginRight: 6 }} ></i>
               Full Name
             </label>
             <Input
@@ -138,14 +129,14 @@ function RegisterPage() {
               placeholder="Enter your full name"
               size="large"
               className="login-input"
-              prefix={<UserOutlined style={{ color: "rgba(148,163,184,0.4)" }} />}
+              prefix={<i className="fa-solid fa-user" style={{ color: "rgba(148,163,184,0.4)" }} ></i>}
               autoFocus
             />
           </div>
 
           <div className="login-field">
             <label className="login-label">
-              <MailOutlined style={{ marginRight: 6 }} />
+              <i className="fa-solid fa-envelope" style={{ marginRight: 6 }} ></i>
               Email
             </label>
             <Input
@@ -155,13 +146,13 @@ function RegisterPage() {
               placeholder="Enter your email address"
               size="large"
               className="login-input"
-              prefix={<MailOutlined style={{ color: "rgba(148,163,184,0.4)" }} />}
+              prefix={<i className="fa-solid fa-envelope" style={{ color: "rgba(148,163,184,0.4)" }} ></i>}
             />
           </div>
 
           <div className="login-field">
             <label className="login-label">
-              <PhoneOutlined style={{ marginRight: 6 }} />
+              <i className="fa-solid fa-phone" style={{ marginRight: 6 }} ></i>
               Phone Number (optional)
             </label>
             <Input
@@ -171,13 +162,13 @@ function RegisterPage() {
               placeholder="Enter your phone number"
               size="large"
               className="login-input"
-              prefix={<PhoneOutlined style={{ color: "rgba(148,163,184,0.4)" }} />}
+              prefix={<i className="fa-solid fa-phone" style={{ color: "rgba(148,163,184,0.4)" }} ></i>}
             />
           </div>
 
           <div className="login-field">
             <label className="login-label">
-              <LockOutlined style={{ marginRight: 6 }} />
+              <i className="fa-solid fa-circle" style={{ marginRight: 6 }} ></i>
               Password
             </label>
             <Input.Password
@@ -187,13 +178,13 @@ function RegisterPage() {
               placeholder="Minimum 8 characters"
               size="large"
               className="login-input"
-              prefix={<LockOutlined style={{ color: "rgba(148,163,184,0.4)" }} />}
+              prefix={<i className="fa-solid fa-circle" style={{ color: "rgba(148,163,184,0.4)" }} ></i>}
             />
           </div>
 
           <div className="login-field">
             <label className="login-label">
-              <LockOutlined style={{ marginRight: 6 }} />
+              <i className="fa-solid fa-circle" style={{ marginRight: 6 }} ></i>
               Confirm Password
             </label>
             <Input.Password
@@ -203,13 +194,13 @@ function RegisterPage() {
               placeholder="Re-enter your password"
               size="large"
               className="login-input"
-              prefix={<LockOutlined style={{ color: "rgba(148,163,184,0.4)" }} />}
+              prefix={<i className="fa-solid fa-circle" style={{ color: "rgba(148,163,184,0.4)" }} ></i>}
             />
           </div>
 
           {error && (
             <div className="login-error">
-              <SafetyCertificateOutlined style={{ marginRight: 6 }} />
+              <i className="fa-solid fa-circle" style={{ marginRight: 6 }} ></i>
               {error}
             </div>
           )}
@@ -221,7 +212,7 @@ function RegisterPage() {
             className="login-btn"
             size="large"
             block
-            icon={loading ? <LoadingOutlined /> : <UserAddOutlined />}
+            icon={loading ? <i className="fa-solid fa-spinner fa-spin"></i> : <i className="fa-solid fa-circle"></i>}
           >
             {loading ? "Creating Account..." : "Sign Up"}
           </Button>

@@ -1,7 +1,7 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from database import db
-from datetime import datetime
+from datetime import datetime, timedelta
 from scheduler import scheduler
 import pickle
 import pandas as pd
@@ -12,7 +12,16 @@ import random
 import uuid
 import os
 import shutil
+import base64
+import hashlib
+import secrets
+import re
+from functools import wraps
 from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.exceptions import HTTPException
+from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity, verify_jwt_in_request, get_jwt
+import bcrypt
+from cryptography.fernet import Fernet
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -42,80 +51,125 @@ future_model = pickle.load(
 # =========================================
 
 app = Flask(__name__)
-CORS(app)
+cors_origins = [origin.strip() for origin in os.environ.get("CORS_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000").split(",") if origin.strip()]
+CORS(app, origins=cors_origins, supports_credentials=True)
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///employee_data.db"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.secret_key = os.environ.get('SECRET_KEY', 'ai-workforce-analytics-secret-2024')
+app.config["JWT_SECRET_KEY"] = os.environ.get('JWT_SECRET_KEY', 'enterprise-grade-jwt-secret-key')
+app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(hours=8)
+jwt = JWTManager(app)
 
 db.init_app(app)
 
-# =========================================
-# USER MODEL
-# =========================================
-class User(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    full_name = db.Column(db.String(100), nullable=False)
-    email = db.Column(db.String(120), unique=True, nullable=True)
-    phone = db.Column(db.String(20), unique=True, nullable=True)
-    password_hash = db.Column(db.String(256), nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    last_login = db.Column(db.DateTime, nullable=True)
+from models import User, AuditLog, UserPreference, JiraProject, JiraSyncLog, EmployeeHistory, Settings, Notification
 
-# =========================================
-# AUDIT LOG MODEL
-# =========================================
-class AuditLog(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, nullable=True)
-    user_email = db.Column(db.String(120), nullable=True)
-    action = db.Column(db.String(50), nullable=False)
-    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
-    ip_address = db.Column(db.String(50), nullable=True)
 
-# =========================================
-# JIRA SYNC LOG MODEL
-# =========================================
-class JiraSyncLog(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    sync_time = db.Column(db.DateTime, default=datetime.utcnow)
-    total_records = db.Column(db.Integer, default=0)
-    status = db.Column(db.String(20), default='success')
-    errors = db.Column(db.Text, nullable=True)
-    duration_seconds = db.Column(db.Float, default=0)
-# =========================================
-# VERIFIED LABEL MAPPING
-# Confirmed by diagnostic: classes_ = [0, 1, 2]
-# actual=High rows  → model predicts 0
-# actual=Low rows   → model predicts 1
-# actual=Medium rows→ model predicts 2
-# =========================================
-class EmployeeHistory(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
+@app.errorhandler(Exception)
+def handle_unexpected_error(error):
+    if isinstance(error, HTTPException):
+        return jsonify({
+            "success": False,
+            "message": error.description
+        }), error.code
 
-    employee_name = db.Column(db.String(100))
-    project = db.Column(db.String(100))
-    task = db.Column(db.String(100))
+    print(f"[UNHANDLED ERROR] {type(error).__name__}: {error}")
+    return jsonify({
+        "success": False,
+        "message": "An unexpected server error occurred. Please try again later."
+    }), 500
 
-    productivity = db.Column(db.Float)
-    burnout = db.Column(db.String(50))
 
-    working_hours = db.Column(db.Float)
-    overtime_hours = db.Column(db.Float)
+def _fernet():
+    raw_key = os.environ.get("JIRA_ENCRYPTION_KEY", "").strip()
+    if raw_key:
+        return Fernet(raw_key.encode("utf-8"))
 
-    upload_time = db.Column(db.DateTime, default=datetime.utcnow)
-    upload_batch_id = db.Column(db.String(50))
+    material = os.environ.get("SECRET_KEY", app.secret_key).encode("utf-8")
+    derived = base64.urlsafe_b64encode(hashlib.sha256(material).digest())
+    return Fernet(derived)
 
-# =========================================
-# SETTINGS MODEL (Jira config + sync interval)
-# =========================================
-class Settings(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    jira_url = db.Column(db.String(255), default='')
-    jira_email = db.Column(db.String(255), default='')
-    jira_api_token = db.Column(db.String(512), default='')
-    jira_project_key = db.Column(db.String(50), default='')
-    auto_sync_interval = db.Column(db.Integer, default=60)  # minutes
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+def encrypt_secret(value):
+    if not value:
+        return ""
+    if str(value).startswith("fernet:"):
+        return value
+    return "fernet:" + _fernet().encrypt(value.encode("utf-8")).decode("utf-8")
+
+
+def decrypt_secret(value):
+    if not value:
+        return ""
+    if not str(value).startswith("fernet:"):
+        return value
+    try:
+        return _fernet().decrypt(value.replace("fernet:", "", 1).encode("utf-8")).decode("utf-8")
+    except Exception:
+        return ""
+
+
+def is_masked_secret(value):
+    value = (value or "").strip()
+    return value.startswith("•") or value.startswith("â€¢")
+
+
+def hash_password(password):
+    return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+
+
+def verify_password(stored_hash, password):
+    if not stored_hash or password is None:
+        return False
+    try:
+        if stored_hash.startswith("$2"):
+            return bcrypt.checkpw(password.encode("utf-8"), stored_hash.encode("utf-8"))
+        return check_password_hash(stored_hash, password)
+    except Exception:
+        return False
+
+
+def hash_reset_token(token):
+    return hashlib.sha256(token.encode("utf-8")).hexdigest()
+
+
+def valid_email(value):
+    return bool(re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", value or ""))
+
+
+def valid_http_url(value):
+    return bool(re.match(r"^https?://[^\s/$.?#].[^\s]*$", value or ""))
+
+
+def create_audit(action, user=None, status="success", message=""):
+    try:
+        audit = AuditLog(
+            user_id=getattr(user, "id", None),
+            user_email=getattr(user, "email", None),
+            action=f"{action}:{status}" if status else action,
+            ip_address=request.remote_addr
+        )
+        db.session.add(audit)
+    except Exception:
+        pass
+
+
+def require_roles(*allowed_roles):
+    def decorator(fn):
+        @wraps(fn)
+        def wrapper(*args, **kwargs):
+            try:
+                verify_jwt_in_request()
+                claims = get_jwt()
+                role = (claims.get("role") or "viewer").lower()
+                if role not in {r.lower() for r in allowed_roles}:
+                    return jsonify({"success": False, "message": "Insufficient permissions"}), 403
+                return fn(*args, **kwargs)
+            except Exception:
+                return jsonify({"success": False, "message": "Authentication required"}), 401
+        return wrapper
+    return decorator
+
 
 def get_settings():
     """
@@ -136,7 +190,7 @@ def get_jira_credentials():
     settings = get_settings()
     url = (settings.jira_url or '').strip()
     email = (settings.jira_email or '').strip()
-    token = (settings.jira_api_token or '').strip()
+    token = decrypt_secret((settings.jira_api_token or '').strip())
     project_key = (settings.jira_project_key or '').strip()
 
     # Fallback to .env if DB settings are empty
@@ -599,6 +653,12 @@ def dashboard_data():
     without requiring a fresh file upload.
     """
     try:
+        connected_projects = [{
+            "project_id": str(p.id),
+            "project_key": p.project_key,
+            "project_name": p.project_name
+        } for p in JiraProject.query.filter_by(is_active=True).order_by(JiraProject.project_key.asc()).all()]
+
         # Find the latest upload_batch_id
         latest = db.session.query(EmployeeHistory.upload_batch_id)\
             .filter(EmployeeHistory.upload_batch_id.isnot(None))\
@@ -613,6 +673,9 @@ def dashboard_data():
                 "forecast": [],
                 "kpis": {
                     "total_employees": 0,
+                    "total_tasks": 0,
+                    "projects_connected": 0,
+                    "projects_synced": 0,
                     "high_burnout": 0,
                     "medium_burnout": 0,
                     "low_burnout": 0,
@@ -620,8 +683,15 @@ def dashboard_data():
                     "avg_predicted_productivity": 0,
                     "overtime_employees": 0,
                     "low_productivity_employees": 0,
-                    "top_performers_count": 0
+                    "top_performers_count": 0,
+                    "completed_tasks": 0,
+                    "open_tasks": 0,
+                    "total_worklogs": 0
                 },
+                "project_performance_overview": [],
+                "aggregated_employees": {},
+                "department_rankings": [],
+                "connected_projects": connected_projects,
                 "top_performers": [],
                 "accuracy": 87.5,
                 "total_records": 0,
@@ -630,11 +700,21 @@ def dashboard_data():
             })
 
         batch_id = latest[0]
+        jira_record_count = EmployeeHistory.query.filter(
+            EmployeeHistory.upload_batch_id.like("jira-%")
+        ).count()
 
-        records = EmployeeHistory.query\
-            .filter_by(upload_batch_id=batch_id)\
-            .order_by(EmployeeHistory.id.asc())\
-            .all()
+        if jira_record_count:
+            records = EmployeeHistory.query\
+                .filter(EmployeeHistory.upload_batch_id.like("jira-%"))\
+                .order_by(EmployeeHistory.id.asc())\
+                .all()
+            batch_id = "jira-all-projects"
+        else:
+            records = EmployeeHistory.query\
+                .filter_by(upload_batch_id=batch_id)\
+                .order_by(EmployeeHistory.id.asc())\
+                .all()
 
         if not records:
             return jsonify({
@@ -642,6 +722,10 @@ def dashboard_data():
                 "employees": [],
                 "forecast": [],
                 "kpis": {},
+                "project_performance_overview": [],
+                "aggregated_employees": {},
+                "department_rankings": [],
+                "connected_projects": connected_projects,
                 "top_performers": [],
                 "accuracy": 87.5,
                 "total_records": 0,
@@ -664,8 +748,12 @@ def dashboard_data():
 
             emp = {
                 "employee_name": rec.employee_name or "Unknown",
-                "project_name": rec.project or "",
+                "project_id": rec.project_id or "",
+                "project_key": rec.project_key or "",
+                "project_name": rec.project_name or rec.project or "",
+                "department": rec.department or "Unknown",
                 "task_name": rec.task or "",
+                "status_name": rec.status or "Open",
                 "productivity": prod,
                 "predicted_productivity": prod,
                 "productive_hours": round(net_hours, 2),
@@ -674,7 +762,7 @@ def dashboard_data():
                 "burnout_risk": burnout,
                 "status": "Active" if hours > 0 else "Idle",
                 "focus_score": 0,
-                "tasks_completed": 0,
+                "tasks_completed": 1 if rec.status in ["Done", "Resolved", "Closed"] else 0,
                 "recommendations": generate_recommendations({"overtime_hours": overtime, "focus_score": 0, "burnout_risk": burnout, "productivity": prod, "tasks_completed": 0, "total_hours": hours}),
                 "recommendation_details": generate_recommendation_details({"overtime_hours": overtime, "focus_score": 0, "burnout_risk": burnout, "productivity": prod, "tasks_completed": 0, "total_hours": hours, "predicted_productivity": prod})
             }
@@ -708,8 +796,143 @@ def dashboard_data():
         med_b = sum(1 for e in employees if e["burnout_risk"] == "Medium")
         low_b = sum(1 for e in employees if e["burnout_risk"] == "Low")
 
+        # Unique employees
+        unique_employees = len(set(e["employee_name"] for e in employees))
+
+        # Aggregated Employees
+        aggregated_employees = {}
+        project_stats = {}
+        department_stats = {}
+        completed_tasks = 0
+        open_tasks = 0
+
+        for e in employees:
+            ename = e["employee_name"]
+            pname = e["project_name"]
+
+            if e["status_name"] in ["Done", "Resolved", "Closed"]:
+                completed_tasks += 1
+            else:
+                open_tasks += 1
+
+            if ename not in aggregated_employees:
+                aggregated_employees[ename] = {
+                    "employee_name": ename,
+                    "total_hours": 0,
+                    "total_tasks": 0,
+                    "completed_tasks": 0,
+                    "overtime": 0,
+                    "productivity_sum": 0,
+                    "burnout_counts": {"High": 0, "Medium": 0, "Low": 0},
+                    "projects": set(),
+                    "department": e["department"],
+                }
+            
+            agg = aggregated_employees[ename]
+            agg["total_hours"] += e["total_hours"]
+            agg["total_tasks"] += 1
+            agg["completed_tasks"] += e["tasks_completed"]
+            agg["overtime"] += e["overtime_hours"]
+            agg["productivity_sum"] += e["productivity"]
+            agg["burnout_counts"][e["burnout_risk"]] = agg["burnout_counts"].get(e["burnout_risk"], 0) + 1
+            agg["projects"].add(pname)
+
+            if pname not in project_stats:
+                project_stats[pname] = {
+                    "project_name": pname,
+                    "employee_set": set(),
+                    "task_count": 0,
+                    "productivity_sum": 0,
+                    "high_burnout_count": 0,
+                    "burnout_counts": {"High": 0, "Medium": 0, "Low": 0},
+                }
+            pstat = project_stats[pname]
+            pstat["employee_set"].add(ename)
+            pstat["task_count"] += 1
+            pstat["productivity_sum"] += e["productivity"]
+            pstat["burnout_counts"][e["burnout_risk"]] = pstat["burnout_counts"].get(e["burnout_risk"], 0) + 1
+            if e["burnout_risk"] == "High":
+                pstat["high_burnout_count"] += 1
+
+            dept = e["department"] or "Unknown"
+            if dept not in department_stats:
+                department_stats[dept] = {
+                    "department": dept,
+                    "employee_set": set(),
+                    "task_count": 0,
+                    "productivity_sum": 0,
+                    "burnout_sum": 0,
+                    "focus_sum": 0,
+                    "hours_sum": 0,
+                    "high_burnout_count": 0,
+                }
+            dst = department_stats[dept]
+            dst["employee_set"].add(ename)
+            dst["task_count"] += 1
+            dst["productivity_sum"] += e["productivity"]
+            dst["burnout_sum"] += 100 if e["burnout_risk"] == "High" else (50 if e["burnout_risk"] == "Medium" else 0)
+            dst["focus_sum"] += e["focus_score"]
+            dst["hours_sum"] += e["total_hours"]
+            if e["burnout_risk"] == "High":
+                dst["high_burnout_count"] += 1
+
+        for agg in aggregated_employees.values():
+            agg["avg_productivity"] = round(agg["productivity_sum"] / agg["total_tasks"], 1) if agg["total_tasks"] else 0
+            agg["productivity"] = agg["avg_productivity"]
+            agg["burnout_risk"] = max(agg["burnout_counts"], key=agg["burnout_counts"].get)
+            agg["projects"] = list(agg["projects"])
+
+        project_performance_overview = []
+        for pname, pstat in project_stats.items():
+            avg_prod = pstat["productivity_sum"] / pstat["task_count"] if pstat["task_count"] else 0
+            emp_count = len(pstat["employee_set"])
+            high_burnout_pct = pstat["high_burnout_count"] / pstat["task_count"] if pstat["task_count"] else 0
+            health_score = (avg_prod * 0.5) + ((1 - high_burnout_pct) * 100 * 0.3) + 20
+            project_performance_overview.append({
+                "project_name": pname,
+                "health_score": round(health_score, 1),
+                "employee_count": emp_count,
+                "task_count": pstat["task_count"],
+                "productivity_score": round(avg_prod, 1),
+                "burnout_risk": "High" if pstat["burnout_counts"]["High"] else ("Medium" if pstat["burnout_counts"]["Medium"] else "Low"),
+                "burnout_risk_count": pstat["high_burnout_count"]
+            })
+
+        department_rankings = []
+        for dept, dst in department_stats.items():
+            task_count = dst["task_count"]
+            emp_count = len(dst["employee_set"])
+            avg_productivity = dst["productivity_sum"] / task_count if task_count else 0
+            avg_burnout = dst["burnout_sum"] / task_count if task_count else 0
+            avg_focus = dst["focus_sum"] / task_count if task_count else 0
+            avg_hours = dst["hours_sum"] / task_count if task_count else 0
+            high_burnout_pct = dst["high_burnout_count"] / task_count if task_count else 0
+            health_score = (avg_productivity * 0.45) + ((100 - avg_burnout) * 0.35) + (avg_focus * 0.2)
+            department_rankings.append({
+                "department": dept,
+                "department_name": dept,
+                "health_score": round(health_score, 1),
+                "employee_count": emp_count,
+                "average_productivity": round(avg_productivity, 1),
+                "average_burnout": round(avg_burnout, 1),
+                "average_focus": round(avg_focus, 1),
+                "average_hours": round(avg_hours, 1),
+                "burnout_risk": "High" if high_burnout_pct >= 0.25 else ("Medium" if high_burnout_pct > 0 else "Low"),
+                "high_burnout_count": dst["high_burnout_count"],
+            })
+
+        department_rankings.sort(key=lambda d: d["health_score"], reverse=True)
+        for idx, dept in enumerate(department_rankings, start=1):
+            dept["rank"] = idx
+
         kpis = {
-            "total_employees": total,
+            "total_employees": unique_employees,
+            "total_tasks": total,
+            "completed_tasks": completed_tasks,
+            "open_tasks": open_tasks,
+            "total_worklogs": total, # 1 row = 1 worklog essentially
+            "projects_connected": JiraProject.query.count(),
+            "projects_synced": JiraProject.query.filter(JiraProject.last_sync.isnot(None)).count(),
             "high_burnout": high_b,
             "medium_burnout": med_b,
             "low_burnout": low_b,
@@ -719,9 +942,9 @@ def dashboard_data():
             "avg_predicted_productivity": round(
                 sum(e["predicted_productivity"] for e in employees) / total, 1
             ) if total > 0 else 0,
-            "overtime_employees": sum(1 for e in employees if e["overtime_hours"] > 0),
-            "low_productivity_employees": sum(1 for e in employees if e["productivity"] < 50),
-            "top_performers_count": sum(1 for e in employees if e["productivity"] >= 80),
+            "overtime_employees": sum(1 for e in aggregated_employees.values() if e["overtime"] > 0),
+            "low_productivity_employees": sum(1 for e in aggregated_employees.values() if e["avg_productivity"] < 50),
+            "top_performers_count": sum(1 for e in aggregated_employees.values() if e["avg_productivity"] >= 80),
         }
 
         # Top performers
@@ -800,7 +1023,11 @@ def dashboard_data():
             "has_data": True,
             "feature_importance": feature_importance,
             "productivity_trend": productivity_trend,
-            "jira_insights": jira_insights
+            "jira_insights": jira_insights,
+            "project_performance_overview": project_performance_overview,
+            "aggregated_employees": aggregated_employees,
+            "department_rankings": department_rankings,
+            "connected_projects": connected_projects
         })
 
     except Exception as e:
@@ -811,6 +1038,10 @@ def dashboard_data():
             "employees": [],
             "forecast": [],
             "kpis": {},
+            "project_performance_overview": [],
+            "aggregated_employees": {},
+            "department_rankings": [],
+            "connected_projects": [],
             "top_performers": [],
             "accuracy": 87.5,
             "total_records": 0,
@@ -831,14 +1062,18 @@ def ai_summary():
     Returns team health score, insights, and actionable recommendations.
     """
     try:
-        # Find latest batch
-        latest = db.session.query(EmployeeHistory.upload_batch_id)\
-            .filter(EmployeeHistory.upload_batch_id.isnot(None))\
-            .filter(EmployeeHistory.upload_batch_id != "")\
-            .order_by(EmployeeHistory.upload_time.desc())\
-            .first()
+        jira_record_count = EmployeeHistory.query.filter(
+            EmployeeHistory.upload_batch_id.like("jira-%")
+        ).count()
+        latest = None
+        if not jira_record_count:
+            latest = db.session.query(EmployeeHistory.upload_batch_id)\
+                .filter(EmployeeHistory.upload_batch_id.isnot(None))\
+                .filter(EmployeeHistory.upload_batch_id != "")\
+                .order_by(EmployeeHistory.upload_time.desc())\
+                .first()
 
-        if not latest or not latest[0]:
+        if not jira_record_count and (not latest or not latest[0]):
             return jsonify({
                 "success": True,
                 "summary": {
@@ -854,10 +1089,15 @@ def ai_summary():
                 }
             })
 
-        batch_id = latest[0]
-        records = EmployeeHistory.query\
-            .filter_by(upload_batch_id=batch_id)\
-            .all()
+        if jira_record_count:
+            records = EmployeeHistory.query.filter(
+                EmployeeHistory.upload_batch_id.like("jira-%")
+            ).all()
+        else:
+            batch_id = latest[0]
+            records = EmployeeHistory.query\
+                .filter_by(upload_batch_id=batch_id)\
+                .all()
 
         if not records:
             return jsonify({"success": True, "summary": {"text": "No records found.", "has_data": False}})
@@ -973,6 +1213,7 @@ def ai_summary():
 # =========================================
 
 @app.route("/api/settings", methods=["GET"])
+@require_roles("admin", "manager")
 def get_settings_api():
     """
     Get current Jira settings.
@@ -987,14 +1228,26 @@ def get_settings_api():
         if creds['token']:
             token_display = "•" * 20 + creds['token'][-4:] if len(creds['token']) > 4 else "•" * len(creds['token'])
 
+        # Fetch discovered projects
+        projects = JiraProject.query.filter_by(is_active=True).all()
+        connected_projects = [{
+            "id": p.id,
+            "project_key": p.project_key,
+            "project_name": p.project_name,
+            "project_type": p.project_type,
+            "is_synced": p.is_synced,
+            "last_sync": p.last_sync.isoformat() if p.last_sync else None,
+            "last_sync_records": p.last_sync_records
+        } for p in projects]
+
         return jsonify({
             "success": True,
             "settings": {
                 "jira_url": creds['url'],
                 "jira_email": creds['email'],
                 "jira_api_token_masked": token_display,
-                "jira_project_key": creds['project_key'],
                 "auto_sync_interval": creds['auto_sync_interval'],
+                "connected_projects": connected_projects,
                 "updated_at": settings.updated_at.isoformat() if settings.updated_at else None,
                 "source": "database" if (settings.jira_url or '').strip() else "env_fallback"
             }
@@ -1005,6 +1258,7 @@ def get_settings_api():
 
 
 @app.route("/api/settings", methods=["PUT"])
+@require_roles("admin")
 def update_settings_api():
     """
     Save Jira settings to SQLite.
@@ -1019,13 +1273,20 @@ def update_settings_api():
 
         # Update fields if provided
         if 'jira_url' in data:
-            settings.jira_url = data['jira_url'].strip()
+            jira_url = data['jira_url'].strip()
+            if jira_url and not valid_http_url(jira_url):
+                return jsonify({"success": False, "error": "Jira URL must be a valid http(s) URL"}), 400
+            settings.jira_url = jira_url
         if 'jira_email' in data:
-            settings.jira_email = data['jira_email'].strip()
-        if 'jira_project_key' in data:
-            settings.jira_project_key = data['jira_project_key'].strip()
+            jira_email = data['jira_email'].strip()
+            if jira_email and not valid_email(jira_email):
+                return jsonify({"success": False, "error": "Jira email is invalid"}), 400
+            settings.jira_email = jira_email
         if 'auto_sync_interval' in data:
-            interval = int(data['auto_sync_interval'])
+            try:
+                interval = int(data['auto_sync_interval'])
+            except (TypeError, ValueError):
+                return jsonify({"success": False, "error": "Auto-sync interval must be a number"}), 400
             settings.auto_sync_interval = max(5, min(1440, interval))
 
         # Only update token if it's a real value (not masked dots)
@@ -1034,7 +1295,13 @@ def update_settings_api():
             if token_val and not token_val.startswith("•"):
                 settings.jira_api_token = token_val
 
+        if 'jira_api_token' in data:
+            token_val = data['jira_api_token'].strip()
+            if token_val and not is_masked_secret(token_val):
+                settings.jira_api_token = encrypt_secret(token_val)
+
         settings.updated_at = datetime.utcnow()
+        create_audit("settings_update", status="success")
         db.session.commit()
 
         print(f"[SETTINGS] Updated by user at {datetime.utcnow()}")
@@ -1050,6 +1317,7 @@ def update_settings_api():
 
 
 @app.route("/api/test-jira-connection", methods=["POST"])
+@require_roles("admin", "manager")
 def test_jira_connection_api():
     """
     Test Jira connection using provided credentials or saved settings.
@@ -1065,7 +1333,8 @@ def test_jira_connection_api():
         url = data.get('jira_url', '').strip() or creds['url']
         email = data.get('jira_email', '').strip() or creds['email']
         token = data.get('jira_api_token', '').strip()
-        project_key = data.get('jira_project_key', '').strip() or creds['project_key']
+        if is_masked_secret(token):
+            token = ""
 
         # If token is masked or empty, use saved token
         if not token or token.startswith("•"):
@@ -1082,14 +1351,29 @@ def test_jira_connection_api():
         jira = JIRA(server=url, basic_auth=(email, token))
         user_info = jira.myself()
 
-        # Test project access
-        project_msg = ""
-        if project_key:
-            try:
-                jira.project(project_key)
-                project_msg = f" Project '{project_key}' accessible."
-            except Exception:
-                project_msg = f" Warning: Project '{project_key}' not found."
+        # Auto-discover projects
+        projects = jira.projects()
+        discovered_count = len(projects)
+        
+        # Save to database
+        for proj in projects:
+            existing = JiraProject.query.filter_by(project_key=proj.key).first()
+            project_type_key = getattr(proj, 'projectTypeKey', 'software')
+            if not existing:
+                new_proj = JiraProject(
+                    project_key=proj.key,
+                    project_name=proj.name,
+                    project_type=project_type_key
+                )
+                db.session.add(new_proj)
+            else:
+                existing.project_name = proj.name
+                existing.project_type = project_type_key
+                existing.is_active = True
+                
+        db.session.commit()
+
+        project_msg = f" Discovered {discovered_count} accessible projects."
 
         return jsonify({
             "success": True,
@@ -1117,6 +1401,7 @@ def test_jira_connection_api():
 
 
 @app.route("/api/settings/sync-now", methods=["POST"])
+@require_roles("admin", "manager")
 def settings_sync_now():
     """
     Trigger an immediate Jira sync using the current saved settings.
@@ -1125,13 +1410,15 @@ def settings_sync_now():
         import jira_sync
         creds = get_jira_credentials()
 
-        if not creds['url'] or not creds['email'] or not creds['token'] or not creds['project_key']:
+        if not creds['url'] or not creds['email'] or not creds['token']:
             return jsonify({
                 "success": False,
                 "error": "Jira credentials are not configured. Please save settings first."
             })
 
         result = jira_sync.sync_jira_data(db, EmployeeHistory, credentials=creds)
+        create_audit("settings_sync_now", status="success" if result.get("success") else "failed")
+        db.session.commit()
         return jsonify(result)
     except Exception as e:
         print(f"[SETTINGS SYNC NOW ERROR] {e}")
@@ -1144,7 +1431,6 @@ def login():
         data = request.json
         identifier = data.get("identifier", "").strip()
         password = data.get("password", "")
-        remember = data.get("remember", False)
         
         # Also support legacy username/password format
         if not identifier:
@@ -1155,27 +1441,32 @@ def login():
         if not identifier or not password:
             return jsonify({"success": False, "message": "Please provide email/phone and password"})
         
-        # Detect if identifier is email or phone
         user = None
         if "@" in identifier:
             user = User.query.filter_by(email=identifier).first()
         else:
-            # Try phone number
             user = User.query.filter_by(phone=identifier).first()
             if not user:
-                # Fallback: try as email anyway
                 user = User.query.filter_by(email=identifier).first()
         
         if not user:
             return jsonify({"success": False, "message": "Account not found. Please register first."})
         
-        if not check_password_hash(user.password_hash, password):
+        is_valid = verify_password(user.password_hash, password)
+
+        if not is_valid:
             return jsonify({"success": False, "message": "Invalid password"})
         
-        # Update last login
+        remember = bool(data.get("remember"))
+        expires_delta = timedelta(days=30) if remember else timedelta(hours=8)
+        access_token = create_access_token(
+            identity=str(user.id),
+            additional_claims={"role": user.role or "viewer"},
+            expires_delta=expires_delta
+        )
+
         user.last_login = datetime.utcnow()
         
-        # Create audit log
         audit = AuditLog(
             user_id=user.id,
             user_email=user.email,
@@ -1188,11 +1479,13 @@ def login():
         return jsonify({
             "success": True,
             "message": "Login successful",
+            "access_token": access_token,
             "user": {
                 "id": user.id,
                 "full_name": user.full_name,
                 "email": user.email,
-                "phone": user.phone
+                "phone": user.phone,
+                "role": user.role
             }
         })
     except Exception as e:
@@ -1218,21 +1511,21 @@ def register():
         if password != confirm_password:
             return jsonify({"success": False, "message": "Passwords do not match"})
         
-        # Check duplicates
         if email:
-            existing = User.query.filter_by(email=email).first()
-            if existing:
+            if User.query.filter_by(email=email).first():
                 return jsonify({"success": False, "message": "An account with this email already exists"})
         if phone:
-            existing = User.query.filter_by(phone=phone).first()
-            if existing:
+            if User.query.filter_by(phone=phone).first():
                 return jsonify({"success": False, "message": "An account with this phone number already exists"})
         
+        hashed_pw = hash_password(password)
+
         user = User(
             full_name=full_name,
             email=email,
             phone=phone,
-            password_hash=generate_password_hash(password)
+            password_hash=hashed_pw,
+            role="admin"  # Defaulting to admin for simplicity in this MVP
         )
         db.session.add(user)
         db.session.commit()
@@ -1359,7 +1652,7 @@ def change_password():
         if not user:
             return jsonify({"success": False, "message": "User not found"})
         
-        if not check_password_hash(user.password_hash, old_password):
+        if not verify_password(user.password_hash, old_password):
             return jsonify({"success": False, "message": "Current password is incorrect"})
         
         if len(new_password) < 8:
@@ -1368,7 +1661,8 @@ def change_password():
         if new_password != confirm_password:
             return jsonify({"success": False, "message": "New passwords do not match"})
         
-        user.password_hash = generate_password_hash(new_password)
+        user.password_hash = hash_password(new_password)
+        create_audit("change_password", user=user, status="success")
         db.session.commit()
         
         return jsonify({"success": True, "message": "Password changed successfully"})
@@ -1381,6 +1675,7 @@ def forgot_password():
     try:
         data = request.json
         identifier = data.get("identifier", "").strip()
+        reset_token = data.get("reset_token", "").strip()
         new_password = data.get("new_password", "")
         confirm_password = data.get("confirm_password", "")
         
@@ -1398,8 +1693,33 @@ def forgot_password():
             return jsonify({"success": False, "message": "No account found with this email/phone"})
         
         if not new_password:
-            # Step 1: just verify account exists
-            return jsonify({"success": True, "message": "Account verified", "account_found": True})
+            token = secrets.token_urlsafe(32)
+            user.password_reset_token_hash = hash_reset_token(token)
+            user.password_reset_expires_at = datetime.utcnow() + timedelta(minutes=30)
+            user.password_reset_used_at = None
+            create_audit("password_reset_requested", user=user, status="success")
+            db.session.commit()
+            return jsonify({
+                "success": True,
+                "message": "Reset verification token generated. In production this token must be emailed to the account owner.",
+                "account_found": True,
+                "reset_token": token,
+                "expires_in_minutes": 30
+            })
+
+        if not reset_token:
+            return jsonify({"success": False, "message": "Password reset token is required"})
+
+        if not user.password_reset_token_hash or user.password_reset_used_at:
+            return jsonify({"success": False, "message": "Password reset token is invalid or already used"})
+
+        if not user.password_reset_expires_at or user.password_reset_expires_at < datetime.utcnow():
+            return jsonify({"success": False, "message": "Password reset token has expired"})
+
+        if hash_reset_token(reset_token) != user.password_reset_token_hash:
+            create_audit("password_reset", user=user, status="failed")
+            db.session.commit()
+            return jsonify({"success": False, "message": "Password reset token is invalid"})
         
         # Step 2: Reset password
         if len(new_password) < 8:
@@ -1408,7 +1728,11 @@ def forgot_password():
         if new_password != confirm_password:
             return jsonify({"success": False, "message": "Passwords do not match"})
         
-        user.password_hash = generate_password_hash(new_password)
+        user.password_hash = hash_password(new_password)
+        user.password_reset_used_at = datetime.utcnow()
+        user.password_reset_token_hash = None
+        user.password_reset_expires_at = None
+        create_audit("password_reset", user=user, status="success")
         db.session.commit()
         
         return jsonify({"success": True, "message": "Password reset successful. Please login with your new password."})
@@ -1421,6 +1745,7 @@ def forgot_password():
 # =========================================
 
 @app.route("/api/sync-jira", methods=["POST"])
+@require_roles("admin", "manager")
 def sync_jira():
     try:
         import time
@@ -1429,6 +1754,8 @@ def sync_jira():
         from jira_sync import sync_jira_data
         creds = get_jira_credentials()
         result = sync_jira_data(db, EmployeeHistory, credentials=creds)
+        create_audit("jira_sync", status="success" if result.get("success") else "failed")
+        db.session.commit()
         
         duration = round(time.time() - start_time, 2)
         
@@ -1437,7 +1764,9 @@ def sync_jira():
             total_records=result.get("synced_records", 0),
             status="success" if result.get("success") else "error",
             errors=str(result.get("errors", result.get("error", ""))),
-            duration_seconds=duration
+            duration_seconds=duration,
+            project_name="All Projects",
+            project_key="All"
         )
         db.session.add(sync_log)
         db.session.commit()
@@ -1457,7 +1786,9 @@ def sync_jira():
         sync_log = JiraSyncLog(
             total_records=0,
             status="error",
-            errors=str(e)
+            errors=str(e),
+            project_name="All Projects",
+            project_key="All"
         )
         db.session.add(sync_log)
         db.session.commit()
@@ -1473,6 +1804,8 @@ def jira_sync_logs():
         for log in logs:
             result.append({
                 "id": log.id,
+                "project_name": log.project_name or "All Projects",
+                "project_key": log.project_key or "-",
                 "sync_time": log.sync_time.strftime("%Y-%m-%d %H:%M:%S") if log.sync_time else "",
                 "total_records": log.total_records,
                 "status": log.status,
@@ -1830,7 +2163,16 @@ def employee_history():
         
         search = request.args.get('search', '')
         if search:
-            query = query.filter(EmployeeHistory.employee_name.ilike(f'%{search}%'))
+            from sqlalchemy import or_
+            pattern = f'%{search}%'
+            query = query.filter(or_(
+                EmployeeHistory.employee_name.ilike(pattern),
+                EmployeeHistory.project_name.ilike(pattern),
+                EmployeeHistory.project_key.ilike(pattern),
+                EmployeeHistory.project.ilike(pattern),
+                EmployeeHistory.department.ilike(pattern),
+                EmployeeHistory.task.ilike(pattern)
+            ))
         
         employee = request.args.get('employee', '')
         if employee:
@@ -1859,7 +2201,11 @@ def employee_history():
         for emp in employees:
             data.append({
                 "employee_name": emp.employee_name,
-                "project": emp.project,
+                "project_id": emp.project_id or "",
+                "project_key": emp.project_key or "",
+                "project_name": emp.project_name or emp.project or "",
+                "project": emp.project_name or emp.project,
+                "department": emp.department or "Unknown",
                 "task": emp.task,
                 "productivity": emp.productivity,
                 "burnout": emp.burnout,
@@ -1916,6 +2262,7 @@ def sync_status():
     })
 
 @app.route("/api/trigger-sync", methods=["POST"])
+@require_roles("admin", "manager")
 def trigger_sync():
     try:
         from scheduler import auto_sync
@@ -1933,17 +2280,7 @@ def trigger_sync():
             create_notification("jira_sync", "Jira sync failed", str(e), "error")
         except: pass
         return jsonify({"success": False, "error": str(e)})
-# =========================================
-# NOTIFICATION MODEL
-# =========================================
-class Notification(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    type = db.Column(db.String(50), nullable=False)       # jira_sync, burnout_alert, upload, settings
-    title = db.Column(db.String(200), nullable=False)
-    message = db.Column(db.Text, nullable=True)
-    severity = db.Column(db.String(20), default='info')    # info, success, warning, error
-    read = db.Column(db.Boolean, default=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
 
 
 def create_notification(ntype, title, message="", severity="info"):
@@ -2007,6 +2344,28 @@ def historical_analytics():
             productivity_trend.append({"date": date_key, "avg_productivity": round(d["prod_sum"] / cnt, 1), "count": cnt})
             burnout_trend.append({"date": date_key, "high": d["high"], "medium": d["med"], "low": d["low"]})
             hours_trend.append({"date": date_key, "avg_hours": round(d["hours_sum"] / cnt, 1), "avg_overtime": round(d["ot_sum"] / cnt, 2)})
+        # Group by project
+        project_daily = defaultdict(lambda: {"prod_sum": 0, "count": 0, "high_burnout": 0})
+        for r in records:
+            p = r.project or "Unknown"
+            project_daily[p]["prod_sum"] += float(r.productivity or 0)
+            project_daily[p]["count"] += 1
+            if r.burnout == "High":
+                project_daily[p]["high_burnout"] += 1
+
+        project_comparison = []
+        for p, d in project_daily.items():
+            cnt = max(d["count"], 1)
+            project_comparison.append({
+                "project_name": p,
+                "avg_productivity": round(d["prod_sum"] / cnt, 1),
+                "total_tasks": d["count"],
+                "high_burnout_count": d["high_burnout"]
+            })
+
+        project_comparison.sort(key=lambda x: x["avg_productivity"], reverse=True)
+        top_performing_project = project_comparison[0] if project_comparison else None
+        highest_risk_project = sorted(project_comparison, key=lambda x: x["high_burnout_count"], reverse=True)[0] if project_comparison else None
 
         return jsonify({
             "success": True,
@@ -2017,7 +2376,10 @@ def historical_analytics():
                 "productivity": productivity_trend,
                 "burnout": burnout_trend,
                 "hours": hours_trend
-            }
+            },
+            "project_comparison": project_comparison,
+            "top_performing_project": top_performing_project,
+            "highest_risk_project": highest_risk_project
         })
     except Exception as e:
         print(f"[HISTORICAL ERROR] {e}")
@@ -2029,6 +2391,7 @@ def historical_analytics():
 # =========================================
 
 @app.route("/api/audit-logs", methods=["GET"])
+@require_roles("admin")
 def get_audit_logs():
     """
     Paginated audit logs with search.
@@ -2189,7 +2552,28 @@ def ai_copilot():
         answer = ""
 
         # Pattern matching
-        if any(kw in question for kw in ["lowest productivity", "least productive", "worst performance", "low productivity"]):
+        if any(kw in question for kw in ["highest productivity project", "most productive project", "best project"]):
+            proj_stats = []
+            for pname, pdata in projects.items():
+                avg = round(pdata["prod_sum"] / pdata["count"], 1)
+                proj_stats.append({"name": pname, "avg_prod": avg})
+            top_p = sorted(proj_stats, key=lambda x: x["avg_prod"], reverse=True)
+            if top_p:
+                answer = f"🌟 The highest productivity project is **{top_p[0]['name']}** with an average productivity of {top_p[0]['avg_prod']}%."
+            else:
+                answer = "No project data available."
+                
+        elif any(kw in question for kw in ["highest burnout project", "most stressed project", "worst burnout project"]):
+            proj_stats = []
+            for pname, pdata in projects.items():
+                proj_stats.append({"name": pname, "high_burnout": pdata["high_burnout"]})
+            top_b = sorted(proj_stats, key=lambda x: x["high_burnout"], reverse=True)
+            if top_b and top_b[0]["high_burnout"] > 0:
+                answer = f"⚠️ The project with the highest burnout risk is **{top_b[0]['name']}** with {top_b[0]['high_burnout']} employees at high risk."
+            else:
+                answer = "✅ No projects have high burnout risk."
+
+        elif any(kw in question for kw in ["lowest productivity", "least productive", "worst performance", "low productivity"]):
             bottom = low_prod[:5]
             lines = [f"  • {e['name']} — {e['productivity']}% ({e['project']})" for e in bottom]
             answer = f"📉 Lowest productivity employees:\n" + "\n".join(lines)
@@ -2206,17 +2590,27 @@ def ai_copilot():
             else:
                 answer = "✅ No employees with high burnout risk currently."
 
-        elif any(kw in question for kw in ["department", "project", "team", "which department", "needs attention"]):
+        elif any(kw in question for kw in ["compare all projects", "compare projects", "project health report", "project report", "department", "project", "team", "which department", "needs attention"]):
             proj_stats = []
             for pname, pdata in projects.items():
                 avg = round(pdata["prod_sum"] / pdata["count"], 1)
                 proj_stats.append({"name": pname, "avg_prod": avg, "count": pdata["count"], "high_burnout": pdata["high_burnout"]})
-            proj_stats.sort(key=lambda x: x["avg_prod"])
-            lines = [f"  • {p['name']} — Avg: {p['avg_prod']}%, {p['count']} members, {p['high_burnout']} high burnout" for p in proj_stats[:5]]
-            answer = f"📊 Department/Project analysis:\n" + "\n".join(lines)
-            if proj_stats[0]["avg_prod"] < 50:
-                answer += f"\n\n⚠️ '{proj_stats[0]['name']}' needs attention ({proj_stats[0]['avg_prod']}% avg productivity)"
-
+            proj_stats.sort(key=lambda x: x["avg_prod"], reverse=True)
+            lines = [f"  • {p['name']} — Avg Productivity: {p['avg_prod']}%, {p['count']} members, {p['high_burnout']} high burnout risk" for p in proj_stats]
+            answer = f"📊 Project Health Report & Comparison:\n" + "\n".join(lines)
+            worst = proj_stats[-1] if proj_stats else None
+            if worst and worst["avg_prod"] < 60:
+                answer += f"\n\n⚠️ '{worst['name']}' needs attention (Lowest productivity: {worst['avg_prod']}%)"
+                
+        elif any(kw in question for kw in ["top performers by project", "burnout by project"]):
+            answer = "🏆 Top Performers by Project:\n"
+            for pname in projects.keys():
+                p_emps = [e for e in employees if e["project"] == pname]
+                top_p = sorted(p_emps, key=lambda e: e["productivity"], reverse=True)
+                burn_p = [e for e in p_emps if e["burnout"] == "High"]
+                if top_p:
+                    answer += f"\n{pname}:\n  • Top: {top_p[0]['name']} ({top_p[0]['productivity']}%)\n  • High Burnout Risks: {len(burn_p)}"
+            
         elif any(kw in question for kw in ["overtime", "overwork", "extra hours"]):
             top_ot = [e for e in high_ot if e["overtime"] > 0][:5]
             if top_ot:
@@ -2276,14 +2670,22 @@ def executive_report():
     Frontend will render this into PDF.
     """
     try:
-        latest = db.session.query(EmployeeHistory.upload_batch_id)\
-            .filter(EmployeeHistory.upload_batch_id.isnot(None))\
-            .order_by(EmployeeHistory.upload_time.desc()).first()
+        jira_record_count = EmployeeHistory.query.filter(
+            EmployeeHistory.upload_batch_id.like("jira-%")
+        ).count()
+        if jira_record_count:
+            records = EmployeeHistory.query.filter(
+                EmployeeHistory.upload_batch_id.like("jira-%")
+            ).all()
+        else:
+            latest = db.session.query(EmployeeHistory.upload_batch_id)\
+                .filter(EmployeeHistory.upload_batch_id.isnot(None))\
+                .order_by(EmployeeHistory.upload_time.desc()).first()
 
-        if not latest:
-            return jsonify({"success": False, "error": "No data available"})
+            if not latest:
+                return jsonify({"success": False, "error": "No data available"})
 
-        records = EmployeeHistory.query.filter_by(upload_batch_id=latest[0]).all()
+            records = EmployeeHistory.query.filter_by(upload_batch_id=latest[0]).all()
         total = len(records)
 
         if total == 0:
@@ -2301,8 +2703,63 @@ def executive_report():
 
         # Top/Bottom performers
         sorted_by_prod = sorted(records, key=lambda r: float(r.productivity or 0), reverse=True)
-        top_5 = [{"name": r.employee_name, "productivity": float(r.productivity or 0), "project": r.project} for r in sorted_by_prod[:5]]
-        bottom_5 = [{"name": r.employee_name, "productivity": float(r.productivity or 0), "project": r.project} for r in sorted_by_prod[-5:]]
+        top_5 = [{"name": r.employee_name, "productivity": float(r.productivity or 0), "project": r.project_name or r.project, "department": r.department or "Unknown"} for r in sorted_by_prod[:5]]
+        bottom_5 = [{"name": r.employee_name, "productivity": float(r.productivity or 0), "project": r.project_name or r.project, "department": r.department or "Unknown"} for r in sorted_by_prod[-5:]]
+
+        # Group by project
+        projects = {}
+        for r in records:
+            p = r.project_name or r.project or "Unknown"
+            if p not in projects:
+                projects[p] = {"prod_sum": 0, "count": 0, "high_burnout": 0, "hours_sum": 0, "employees": set()}
+            projects[p]["prod_sum"] += float(r.productivity or 0)
+            projects[p]["count"] += 1
+            projects[p]["hours_sum"] += float(r.working_hours or 0)
+            projects[p]["employees"].add(r.employee_name or "Unknown")
+            if r.burnout == "High":
+                projects[p]["high_burnout"] += 1
+
+        departments = {}
+        for r in records:
+            dept = r.department or "Unknown"
+            if dept not in departments:
+                departments[dept] = {"prod_sum": 0, "burnout_sum": 0, "focus_sum": 0, "hours_sum": 0, "count": 0, "employees": set(), "high_burnout": 0}
+            departments[dept]["prod_sum"] += float(r.productivity or 0)
+            departments[dept]["burnout_sum"] += 100 if r.burnout == "High" else (50 if r.burnout == "Medium" else 0)
+            departments[dept]["hours_sum"] += float(r.working_hours or 0)
+            departments[dept]["count"] += 1
+            departments[dept]["employees"].add(r.employee_name or "Unknown")
+            if r.burnout == "High":
+                departments[dept]["high_burnout"] += 1
+                
+        project_summary = []
+        for pname, pdata in projects.items():
+            project_summary.append({
+                "project_name": pname,
+                "avg_productivity": round(pdata["prod_sum"] / pdata["count"], 1),
+                "avg_hours": round(pdata["hours_sum"] / pdata["count"], 1),
+                "high_burnout_count": pdata["high_burnout"],
+                "employee_count": len(pdata["employees"])
+            })
+
+        department_summary = []
+        for dept, ddata in departments.items():
+            cnt = ddata["count"]
+            avg_prod = ddata["prod_sum"] / cnt if cnt else 0
+            avg_burnout = ddata["burnout_sum"] / cnt if cnt else 0
+            health_score = (avg_prod * 0.55) + ((100 - avg_burnout) * 0.45)
+            department_summary.append({
+                "department_name": dept,
+                "health_score": round(health_score, 1),
+                "employee_count": len(ddata["employees"]),
+                "average_productivity": round(avg_prod, 1),
+                "average_burnout": round(avg_burnout, 1),
+                "average_hours": round(ddata["hours_sum"] / cnt, 1) if cnt else 0,
+                "burnout_risk": "High" if ddata["high_burnout"] else ("Medium" if avg_burnout > 0 else "Low")
+            })
+        department_summary.sort(key=lambda d: d["health_score"], reverse=True)
+        for idx, dept in enumerate(department_summary, start=1):
+            dept["rank"] = idx
 
         # Jira summary
         jira_records = EmployeeHistory.query.filter(EmployeeHistory.upload_batch_id.like("jira-%")).count()
@@ -2327,6 +2784,8 @@ def executive_report():
             },
             "top_performers": top_5,
             "needs_improvement": bottom_5,
+            "projects_summary": project_summary,
+            "departments_summary": department_summary,
             "jira": {
                 "total_synced_records": jira_records,
                 "last_sync": last_jira.sync_time.strftime("%Y-%m-%d %H:%M:%S") if last_jira else "Never",
@@ -2347,6 +2806,8 @@ def executive_report():
         if burnout_counts["High"] == 0 and burnout_counts["Medium"] == 0:
             report["recommendations"].append("✅ No significant burnout risk across the team")
 
+        create_audit("executive_report", status="success")
+        db.session.commit()
         return jsonify({"success": True, "report": report})
 
     except Exception as e:
@@ -2402,10 +2863,56 @@ def system_health():
 # RUN APP
 # =========================================
 
+def ensure_employee_history_enterprise_columns():
+    required_columns = {
+        "project_id": "VARCHAR(100)",
+        "project_key": "VARCHAR(100)",
+        "project_name": "VARCHAR(255)",
+        "department": "VARCHAR(100)",
+        "status": "VARCHAR(50)",
+    }
+
+    existing = db.session.execute(db.text("PRAGMA table_info(employee_history)")).fetchall()
+    existing_names = {row[1] for row in existing}
+
+    for column, data_type in required_columns.items():
+        if column not in existing_names:
+            db.session.execute(db.text(f"ALTER TABLE employee_history ADD COLUMN {column} {data_type}"))
+
+    db.session.commit()
+
+
+def ensure_user_security_columns():
+    required_columns = {
+        "role": "VARCHAR(50)",
+        "password_reset_token_hash": "VARCHAR(256)",
+        "password_reset_expires_at": "DATETIME",
+        "password_reset_used_at": "DATETIME",
+    }
+
+    existing = db.session.execute(db.text("PRAGMA table_info(user)")).fetchall()
+    existing_names = {row[1] for row in existing}
+
+    for column, data_type in required_columns.items():
+        if column not in existing_names:
+            db.session.execute(db.text(f"ALTER TABLE user ADD COLUMN {column} {data_type}"))
+
+    db.session.commit()
+
+
+def encrypt_existing_jira_token():
+    settings = Settings.query.first()
+    if settings and settings.jira_api_token and not settings.jira_api_token.startswith("fernet:"):
+        settings.jira_api_token = encrypt_secret(settings.jira_api_token)
+        db.session.commit()
+
 if __name__ == "__main__":
 
     with app.app_context():
         db.create_all()
+        ensure_employee_history_enterprise_columns()
+        ensure_user_security_columns()
+        encrypt_existing_jira_token()
         from scheduler import set_jira_sync_app
         set_jira_sync_app(app)
 

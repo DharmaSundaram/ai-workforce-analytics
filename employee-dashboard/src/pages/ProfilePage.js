@@ -12,26 +12,7 @@ import {
   notification,
   Spin,
 } from "antd";
-import {
-  UserOutlined,
-  MailOutlined,
-  PhoneOutlined,
-  LockOutlined,
-  SaveOutlined,
-  LogoutOutlined,
-  ArrowLeftOutlined,
-  DashboardOutlined,
-  LoadingOutlined,
-  SafetyCertificateOutlined,
-  CalendarOutlined,
-  ClockCircleOutlined,
-  EditOutlined,
-  KeyOutlined,
-  HistoryOutlined,
-  CheckCircleOutlined,
-  LoginOutlined,
-  LogoutOutlined as LogoutIcon,
-} from "@ant-design/icons";
+
 import "../App.css";
 
 const { Header, Content } = Layout;
@@ -253,6 +234,8 @@ function ProfilePage() {
   const handleLogout = () => {
     localStorage.removeItem("isAuthenticated");
     localStorage.removeItem("loginTime");
+    localStorage.removeItem("sessionExpiresAt");
+    localStorage.removeItem("jwt_token");
     localStorage.removeItem("user");
     api.info({
       message: "Logged Out",
@@ -291,9 +274,9 @@ function ProfilePage() {
             }}
           >
             {isLogin ? (
-              <LoginOutlined style={{ marginRight: 4 }} />
+              <i className="fa-solid fa-right-to-bracket" style={{ marginRight: 4 }} ></i>
             ) : (
-              <LogoutIcon style={{ marginRight: 4 }} />
+              <i className="fa-solid fa-right-from-bracket" style={{ marginRight: 4 }} ></i>
             )}
             {action}
           </Tag>
@@ -306,7 +289,7 @@ function ProfilePage() {
       key: "timestamp",
       render: (ts) => (
         <span style={{ color: "#94a3b8", fontSize: 13 }}>
-          <ClockCircleOutlined style={{ marginRight: 6 }} />
+          <i className="fa-solid fa-circle" style={{ marginRight: 6 }} ></i>
           {ts ? new Date(ts).toLocaleString() : "—"}
         </span>
       ),
@@ -342,7 +325,7 @@ function ProfilePage() {
       <Header className="app-header">
         <div className="header-brand">
           <div className="header-logo-icon">
-            <DashboardOutlined style={{ fontSize: 20, color: "#fff" }} />
+            <i className="fa-solid fa-chart-line" style={{ fontSize: 20, color: "#fff" }} ></i>
           </div>
           <div>
             <div className="header-title">Profile Settings</div>
@@ -353,14 +336,14 @@ function ProfilePage() {
         </div>
         <div className="header-badge-area">
           <Button
-            icon={<ArrowLeftOutlined />}
+            icon={<i className="fa-solid fa-circle"></i>}
             onClick={() => navigate("/dashboard")}
             className="header-nav-btn"
           >
             Dashboard
           </Button>
           <Button
-            icon={<LogoutOutlined />}
+            icon={<i className="fa-solid fa-right-from-bracket"></i>}
             onClick={handleLogout}
             className="header-nav-btn"
             danger
@@ -383,10 +366,9 @@ function ProfilePage() {
           >
             <Spin
               indicator={
-                <LoadingOutlined
-                  style={{ fontSize: 36, color: "#2563eb" }}
+                <i className="fa-solid fa-spinner fa-spin" style={{ fontSize: 36, color: "#2563eb" }}
                   spin
-                />
+                ></i>
               }
               tip="Loading profile..."
             />
@@ -421,7 +403,7 @@ function ProfilePage() {
                     flexShrink: 0,
                   }}
                 >
-                  <UserOutlined style={{ fontSize: 36, color: "#ffffff" }} />
+                  <i className="fa-solid fa-user" style={{ fontSize: 36, color: "#ffffff" }} ></i>
                 </div>
 
                 {/* Info */}
@@ -473,7 +455,7 @@ function ProfilePage() {
                         fontSize: 13,
                       }}
                     >
-                      <PhoneOutlined style={{ color: "#10b981" }} />
+                      <i className="fa-solid fa-phone" style={{ color: "#10b981" }} ></i>
                       {profileUser.phone}
                     </div>
                   )}
@@ -487,7 +469,7 @@ function ProfilePage() {
                         fontSize: 13,
                       }}
                     >
-                      <CalendarOutlined style={{ color: "#f59e0b" }} />
+                      <i className="fa-solid fa-calendar" style={{ color: "#f59e0b" }} ></i>
                       Member since{" "}
                       {new Date(
                         profileUser.created_at || profileUser.member_since
@@ -504,7 +486,7 @@ function ProfilePage() {
                         fontSize: 13,
                       }}
                     >
-                      <ClockCircleOutlined style={{ color: "#3b82f6" }} />
+                      <i className="fa-solid fa-circle" style={{ color: "#3b82f6" }} ></i>
                       Last login{" "}
                       {new Date(
                         profileUser.last_login || profileUser.last_login_at
@@ -523,7 +505,7 @@ function ProfilePage() {
                   bordered={false}
                   title={
                     <span>
-                      <EditOutlined style={{ marginRight: 8, color: "#3b82f6" }} />
+                      <i className="fa-solid fa-pen" style={{ marginRight: 8, color: "#3b82f6" }} ></i>
                       Edit Profile
                     </span>
                   }
@@ -547,7 +529,7 @@ function ProfilePage() {
                           display: "block",
                         }}
                       >
-                        <UserOutlined style={{ marginRight: 6 }} />
+                        <i className="fa-solid fa-user" style={{ marginRight: 6 }} ></i>
                         Full Name
                       </label>
                       <Input
@@ -557,9 +539,8 @@ function ProfilePage() {
                         size="large"
                         className="dark-input"
                         prefix={
-                          <UserOutlined
-                            style={{ color: "rgba(148,163,184,0.4)" }}
-                          />
+                          <i className="fa-solid fa-user" style={{ color: "rgba(148,163,184,0.4)" }}
+                          ></i>
                         }
                       />
                     </div>
@@ -576,7 +557,7 @@ function ProfilePage() {
                           display: "block",
                         }}
                       >
-                        <MailOutlined style={{ marginRight: 6 }} />
+                        <i className="fa-solid fa-envelope" style={{ marginRight: 6 }} ></i>
                         Email
                       </label>
                       <Input
@@ -586,9 +567,8 @@ function ProfilePage() {
                         size="large"
                         className="dark-input"
                         prefix={
-                          <MailOutlined
-                            style={{ color: "rgba(148,163,184,0.4)" }}
-                          />
+                          <i className="fa-solid fa-envelope" style={{ color: "rgba(148,163,184,0.4)" }}
+                          ></i>
                         }
                       />
                     </div>
@@ -605,7 +585,7 @@ function ProfilePage() {
                           display: "block",
                         }}
                       >
-                        <PhoneOutlined style={{ marginRight: 6 }} />
+                        <i className="fa-solid fa-phone" style={{ marginRight: 6 }} ></i>
                         Phone Number
                       </label>
                       <Input
@@ -615,16 +595,15 @@ function ProfilePage() {
                         size="large"
                         className="dark-input"
                         prefix={
-                          <PhoneOutlined
-                            style={{ color: "rgba(148,163,184,0.4)" }}
-                          />
+                          <i className="fa-solid fa-phone" style={{ color: "rgba(148,163,184,0.4)" }}
+                          ></i>
                         }
                       />
                     </div>
 
                     <Button
                       type="primary"
-                      icon={<SaveOutlined />}
+                      icon={<i className="fa-solid fa-circle"></i>}
                       onClick={handleSaveProfile}
                       loading={savingProfile}
                       className="filter-btn"
@@ -649,7 +628,7 @@ function ProfilePage() {
                   bordered={false}
                   title={
                     <span>
-                      <KeyOutlined style={{ marginRight: 8, color: "#f59e0b" }} />
+                      <i className="fa-solid fa-circle" style={{ marginRight: 8, color: "#f59e0b" }} ></i>
                       Change Password
                     </span>
                   }
@@ -673,7 +652,7 @@ function ProfilePage() {
                           display: "block",
                         }}
                       >
-                        <LockOutlined style={{ marginRight: 6 }} />
+                        <i className="fa-solid fa-circle" style={{ marginRight: 6 }} ></i>
                         Current Password
                       </label>
                       <Input.Password
@@ -683,9 +662,8 @@ function ProfilePage() {
                         size="large"
                         className="dark-input"
                         prefix={
-                          <LockOutlined
-                            style={{ color: "rgba(148,163,184,0.4)" }}
-                          />
+                          <i className="fa-solid fa-circle" style={{ color: "rgba(148,163,184,0.4)" }}
+                          ></i>
                         }
                       />
                     </div>
@@ -702,7 +680,7 @@ function ProfilePage() {
                           display: "block",
                         }}
                       >
-                        <LockOutlined style={{ marginRight: 6 }} />
+                        <i className="fa-solid fa-circle" style={{ marginRight: 6 }} ></i>
                         New Password
                       </label>
                       <Input.Password
@@ -712,9 +690,8 @@ function ProfilePage() {
                         size="large"
                         className="dark-input"
                         prefix={
-                          <LockOutlined
-                            style={{ color: "rgba(148,163,184,0.4)" }}
-                          />
+                          <i className="fa-solid fa-circle" style={{ color: "rgba(148,163,184,0.4)" }}
+                          ></i>
                         }
                       />
                     </div>
@@ -731,7 +708,7 @@ function ProfilePage() {
                           display: "block",
                         }}
                       >
-                        <LockOutlined style={{ marginRight: 6 }} />
+                        <i className="fa-solid fa-circle" style={{ marginRight: 6 }} ></i>
                         Confirm New Password
                       </label>
                       <Input.Password
@@ -741,9 +718,8 @@ function ProfilePage() {
                         size="large"
                         className="dark-input"
                         prefix={
-                          <LockOutlined
-                            style={{ color: "rgba(148,163,184,0.4)" }}
-                          />
+                          <i className="fa-solid fa-circle" style={{ color: "rgba(148,163,184,0.4)" }}
+                          ></i>
                         }
                       />
                     </div>
@@ -761,14 +737,14 @@ function ProfilePage() {
                           alignItems: "center",
                         }}
                       >
-                        <SafetyCertificateOutlined style={{ marginRight: 6 }} />
+                        <i className="fa-solid fa-circle" style={{ marginRight: 6 }} ></i>
                         {passwordError}
                       </div>
                     )}
 
                     <Button
                       type="primary"
-                      icon={<CheckCircleOutlined />}
+                      icon={<i className="fa-solid fa-circle-check"></i>}
                       onClick={handleChangePassword}
                       loading={changingPassword}
                       className="filter-btn"
@@ -802,9 +778,8 @@ function ProfilePage() {
                     fontWeight: 600,
                   }}
                 >
-                  <HistoryOutlined
-                    style={{ marginRight: 8, color: "#8b5cf6" }}
-                  />
+                  <i className="fa-solid fa-clock-rotate-left" style={{ marginRight: 8, color: "#8b5cf6" }}
+                  ></i>
                   Login Activity
                 </span>
               }
@@ -835,9 +810,8 @@ function ProfilePage() {
                           color: "var(--text-dim)",
                         }}
                       >
-                        <HistoryOutlined
-                          style={{ fontSize: 36, marginBottom: 12 }}
-                        />
+                        <i className="fa-solid fa-clock-rotate-left" style={{ fontSize: 36, marginBottom: 12 }}
+                        ></i>
                         <div>No login activity recorded yet</div>
                       </div>
                     ),

@@ -17,7 +17,16 @@ import "./App.css";
 // =========================================
 function ProtectedRoute({ children }) {
   const isAuthenticated = localStorage.getItem("isAuthenticated") === "true";
-  return isAuthenticated ? children : <Navigate to="/login" replace />;
+  const expiresAt = localStorage.getItem("sessionExpiresAt");
+
+  if (!isAuthenticated || (expiresAt && new Date(expiresAt).getTime() <= Date.now())) {
+    localStorage.removeItem("isAuthenticated");
+    localStorage.removeItem("jwt_token");
+    localStorage.removeItem("sessionExpiresAt");
+    return <Navigate to="/login" replace />;
+  }
+
+  return children;
 }
 
 // =========================================

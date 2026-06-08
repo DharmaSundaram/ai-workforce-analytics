@@ -1,20 +1,14 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { Badge, Dropdown, List, Button, Empty } from "antd";
-import {
-  BellOutlined,
-  CheckCircleOutlined,
-  WarningOutlined,
-  InfoCircleOutlined,
-  SyncOutlined,
-} from "@ant-design/icons";
+
 
 const BACKEND_URL = "http://127.0.0.1:5000";
 
 const severityConfig = {
-  success: { color: "#10b981", icon: <CheckCircleOutlined /> },
-  warning: { color: "#f59e0b", icon: <WarningOutlined /> },
-  error: { color: "#ef4444", icon: <WarningOutlined /> },
-  info: { color: "#3b82f6", icon: <InfoCircleOutlined /> },
+  success: { color: "#10b981", icon: <i className="fa-solid fa-circle-check"></i> },
+  warning: { color: "#f59e0b", icon: <i className="fa-solid fa-triangle-exclamation"></i> },
+  error: { color: "#ef4444", icon: <i className="fa-solid fa-triangle-exclamation"></i> },
+  info: { color: "#3b82f6", icon: <i className="fa-solid fa-circle"></i> },
 };
 
 function NotificationBell() {
@@ -78,7 +72,7 @@ function NotificationBell() {
         <div style={panelStyle} onClick={(e) => e.stopPropagation()}>
           <div style={headerStyle}>
             <span style={{ color: "#e2e8f0", fontWeight: 600, fontSize: 15 }}>
-              <BellOutlined style={{ marginRight: 8, color: "#8b5cf6" }} />
+              <i className="fa-solid fa-bell" style={{ marginRight: 8, color: "#8b5cf6" }} ></i>
               Notifications
             </span>
             <div style={{ display: "flex", gap: 8 }}>
@@ -95,13 +89,20 @@ function NotificationBell() {
               <Button
                 size="small"
                 type="text"
-                icon={<SyncOutlined />}
+                icon={<i className="fa-solid fa-arrows-rotate"></i>}
                 onClick={fetchNotifications}
                 style={{ color: "#64748b" }}
               />
             </div>
           </div>
-          <div style={{ maxHeight: 360, overflowY: "auto", padding: "4px 0" }}>
+          <div style={{ padding: "8px 16px 0", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+            <div style={{ display: "flex", gap: "16px" }}>
+              <span style={{ color: "#8b5cf6", fontSize: 13, paddingBottom: 8, borderBottom: "2px solid #8b5cf6", cursor: "pointer" }}>All</span>
+              <span style={{ color: "#94a3b8", fontSize: 13, paddingBottom: 8, cursor: "pointer" }}>Alerts</span>
+              <span style={{ color: "#94a3b8", fontSize: 13, paddingBottom: 8, cursor: "pointer" }}>System</span>
+            </div>
+          </div>
+          <div style={{ maxHeight: 310, overflowY: "auto", padding: "4px 0" }}>
             {notifications.length === 0 ? (
               <Empty
                 description={
@@ -182,7 +183,7 @@ function NotificationBell() {
     >
       <Badge count={unreadCount} size="small" offset={[-2, 2]}>
         <Button
-          icon={<BellOutlined />}
+          icon={<i className="fa-solid fa-bell"></i>}
           className="header-nav-btn"
           style={{ position: "relative" }}
         />
