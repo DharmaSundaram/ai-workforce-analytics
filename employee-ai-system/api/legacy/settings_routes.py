@@ -78,11 +78,6 @@ def update_settings_api():
         # Only update token if it's a real value (not masked dots)
         if 'jira_api_token' in data:
             token_val = data['jira_api_token'].strip()
-            if token_val and not token_val.startswith("•"):
-                settings.jira_api_token = token_val
-
-        if 'jira_api_token' in data:
-            token_val = data['jira_api_token'].strip()
             if token_val and not is_masked_secret(token_val):
                 settings.jira_api_token = encrypt_secret(token_val)
 

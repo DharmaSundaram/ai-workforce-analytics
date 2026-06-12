@@ -140,7 +140,26 @@ def sync_jira_data(db, EmployeeHistory, credentials=None):
                 "synced_records": 0,
             }
 
-        jira = JIRA(server=url, basic_auth=(email, token))
+        # Verify credentials upfront before processing projects
+        try:
+            jira = JIRA(server=url, basic_auth=(email, token))
+            jira.myself()
+        except Exception as e:
+            error_msg = str(e)
+            if "401" in error_msg or "Unauthorized" in error_msg or "AUTHENTICATED_FAILED" in error_msg:
+                error_msg = "Invalid Jira credentials. Please check your email and API token, or generate a new token from Atlassian Account → Security → API Tokens."
+            elif "403" in error_msg:
+                error_msg = "Access forbidden. Check your Jira permissions."
+            elif "404" in error_msg:
+                error_msg = "Jira URL not found. Please verify the URL."
+            elif "connect" in error_msg.lower() or "resolve" in error_msg.lower():
+                error_msg = f"Cannot connect to Jira server. Check the URL: {error_msg}"
+            print(f"[JIRA SYNC] Auth failed: {e}")
+            return {
+                "success": False,
+                "error": error_msg,
+                "synced_records": 0,
+            }
 
         # Get all active projects
         active_projects = JiraProject.query.filter_by(is_active=True).all()
@@ -156,6 +175,7 @@ def sync_jira_data(db, EmployeeHistory, credentials=None):
         total_skipped_duplicates = 0
         total_skipped_unassigned = 0
         all_errors = []
+        projects_failed = 0
 
         upload_batch_id = f'jira-{datetime.utcnow().strftime("%Y%m%d%H%M%S")}'
 
@@ -164,6 +184,7 @@ def sync_jira_data(db, EmployeeHistory, credentials=None):
             jql = f'project = "{proj.project_key}" ORDER BY updated DESC'
             
             project_synced_count = 0
+            project_errors = []
             
             try:
                 issues = jira.search_issues(jql, maxResults=100)
@@ -241,7 +262,7 @@ def sync_jira_data(db, EmployeeHistory, credentials=None):
                         total_synced_count += 1
                         
                     except Exception as e:
-                        all_errors.append(f"[{proj.project_key}] Error processing issue {getattr(issue, 'key', 'Unknown')}: {str(e)}")
+                        project_errors.append(f"[{proj.project_key}] Error processing issue {getattr(issue, 'key', 'Unknown')}: {str(e)}")
 
                 db.session.commit()
                 
@@ -257,17 +278,21 @@ def sync_jira_data(db, EmployeeHistory, credentials=None):
                 sync_log = JiraSyncLog(
                     sync_time=end_time,
                     total_records=project_synced_count,
-                    status="success" if project_synced_count > 0 or not all_errors else "warning",
-                    errors="\n".join(all_errors[-5:]) if all_errors else None,
+                    status="success" if not project_errors else "warning",
+                    errors="\n".join(project_errors[-5:]) if project_errors else None,
                     duration_seconds=duration,
                     project_name=getattr(proj, 'project_name', 'Unknown') or 'Unknown',
                     project_key=getattr(proj, 'project_key', 'Unknown') or 'Unknown'
                 )
                 db.session.add(sync_log)
                 db.session.commit()
+                
+                all_errors.extend(project_errors)
 
             except Exception as e:
-                all_errors.append(f"[{proj.project_key}] Sync error: {str(e)}")
+                projects_failed += 1
+                error_entry = f"[{proj.project_key}] Sync error: {str(e)}"
+                all_errors.append(error_entry)
                 end_time = datetime.utcnow()
                 sync_log = JiraSyncLog(
                     sync_time=end_time,
@@ -280,6 +305,15 @@ def sync_jira_data(db, EmployeeHistory, credentials=None):
                 )
                 db.session.add(sync_log)
                 db.session.commit()
+
+        # If ALL projects failed, report failure
+        if projects_failed == len(active_projects):
+            return {
+                "success": False,
+                "error": f"All {projects_failed} projects failed to sync. " + (all_errors[0] if all_errors else "Unknown error"),
+                "synced_records": 0,
+                "errors": all_errors,
+            }
 
         return {
             "success": True,
