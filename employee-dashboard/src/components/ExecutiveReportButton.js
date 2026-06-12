@@ -3,7 +3,6 @@ import { API_BASE_URL as BACKEND_URL } from '../services/api';
 import { Button, notification } from 'antd';
 
 
-
 const buildReportHTML = (report) => {
   const {
     generated_at,
@@ -334,16 +333,17 @@ const buildReportHTML = (report) => {
 </html>`;
 };
 
-const ExecutiveReportButton = () => {
+const ExecutiveReportButton = ({ asMenuItem }) => {
   const [loading, setLoading] = useState(false);
 
   const handleGenerateReport = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`${BACKEND_URL}/api/executive-report`);
-      if (!response.ok) {
-        throw new Error(`Server responded with status ${response.status}`);
-      }
+      const response = await fetch(`${BACKEND_URL}/api/executive-report`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('jwt_token')}`,
+        },
+      });
       const data = await response.json();
       if (!data.success || !data.report) {
         throw new Error('Invalid report data received from server.');
@@ -375,6 +375,15 @@ const ExecutiveReportButton = () => {
       setLoading(false);
     }
   };
+
+  if (asMenuItem) {
+    return (
+      <div onClick={handleGenerateReport} style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%' }}>
+        <i className="fa-solid fa-file-pdf" style={{ width: 16 }}></i>
+        <span>{loading ? 'Generating...' : 'Report'}</span>
+      </div>
+    );
+  }
 
   return (
     <Button

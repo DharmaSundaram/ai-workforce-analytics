@@ -3,8 +3,10 @@ import { useTheme } from '../context/ThemeContext';
 import { motion } from 'framer-motion';
 
 const AILogo = ({ size = 48, glow = false }) => {
-  const { colorTheme, colorThemes } = useTheme();
-  const themeData = colorThemes[colorTheme] || colorThemes.blue;
+  const themeContext = useTheme();
+  const colorTheme = themeContext?.colorTheme || 'dark';
+  const colorThemes = themeContext?.colorThemes || {};
+  const themeData = colorThemes[colorTheme] || { gradient: '#3b82f6', glow: 'rgba(59, 130, 246, 0.5)' };
 
   return (
     <motion.div 
