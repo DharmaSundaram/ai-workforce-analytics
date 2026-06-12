@@ -118,6 +118,7 @@ export function ThemeProvider({ children }) {
   const [glassEnabled, setGlassEnabled] = useState(() => localStorage.getItem("app-glass") !== "false");
   const [animationsEnabled, setAnimationsEnabled] = useState(() => localStorage.getItem("app-anim") !== "false");
   const [particlesEnabled, setParticlesEnabled] = useState(() => localStorage.getItem("app-particles") !== "false");
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => localStorage.getItem("app-sidebar-collapsed") === "true");
 
   // Apply color theme CSS variables
   const applyColorTheme = useCallback((ctKey) => {
@@ -181,6 +182,10 @@ export function ThemeProvider({ children }) {
       document.body.classList.remove('no-particles');
     }
   }, [particlesEnabled]);
+
+  useEffect(() => {
+    localStorage.setItem("app-sidebar-collapsed", sidebarCollapsed);
+  }, [sidebarCollapsed]);
 
   // Persist theme to backend
   const persistThemeToBackend = useCallback(async (themeData) => {
@@ -256,7 +261,8 @@ export function ThemeProvider({ children }) {
       fontFamily, setFontFamily: handleSetFont, fontOptions,
       glassEnabled, setGlassEnabled,
       animationsEnabled, setAnimationsEnabled,
-      particlesEnabled, setParticlesEnabled
+      particlesEnabled, setParticlesEnabled,
+      sidebarCollapsed, setSidebarCollapsed
     }}>
       {children}
     </ThemeContext.Provider>

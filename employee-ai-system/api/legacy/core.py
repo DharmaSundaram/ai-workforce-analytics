@@ -50,7 +50,15 @@ future_model = load_future_productivity_model()
 # =========================================
 
 app = Flask(__name__)
-CORS(app, origins=settings.CORS_ORIGINS, supports_credentials=True)
+CORS(
+    app,
+    resources={r"/*": {"origins": settings.CORS_ORIGINS}},
+    supports_credentials=True,
+    allow_headers=["Content-Type", "Authorization", "X-Requested-With"],
+    expose_headers=["Content-Type", "Authorization"],
+    methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    max_age=86400,
+)
 app.config["SQLALCHEMY_DATABASE_URI"] = DATABASE_URL
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = settings.SQLALCHEMY_TRACK_MODIFICATIONS
 app.secret_key = settings.SECRET_KEY

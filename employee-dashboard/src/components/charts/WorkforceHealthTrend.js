@@ -46,7 +46,7 @@ const WorkforceHealthTrend = ({ trendData }) => {
 
       <div style={{ width: '100%', height: 300 }}>
         {filteredData.length > 0 ? (
-          <ResponsiveContainer>
+          <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={240} debounce={50}>
             <LineChart
               data={filteredData}
               margin={{ top: 5, right: 30, left: 0, bottom: 5 }}

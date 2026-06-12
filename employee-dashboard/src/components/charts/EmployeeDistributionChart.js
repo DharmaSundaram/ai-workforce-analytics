@@ -55,7 +55,7 @@ const EmployeeDistributionChart = ({ aggregatedEmployees }) => {
       </h3>
 
       <div style={{ width: '100%', height: 300, position: 'relative' }}>
-        <ResponsiveContainer>
+        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={240} debounce={50}>
           <PieChart>
             <Pie
               data={data}

@@ -69,7 +69,7 @@ const DepartmentPerformanceChart = ({ employees }) => {
       </div>
 
       <div style={{ width: '100%', height: 300 }}>
-        <ResponsiveContainer>
+        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={240} debounce={50}>
           <BarChart
             data={data}
             margin={{ top: 5, right: 30, left: 0, bottom: 5 }}

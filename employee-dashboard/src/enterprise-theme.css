@@ -452,12 +452,15 @@ body::before {
 .app-header,
 .aether-header {
   height: 86px !important;
-  padding: 0 36px !important;
+  min-height: 86px !important;
+  padding: 12px 36px !important;
   background: rgba(5, 9, 24, 0.86) !important;
   border-bottom: 1px solid rgba(132, 154, 190, 0.16) !important;
   box-shadow: none !important;
   backdrop-filter: blur(20px) saturate(145%) !important;
   -webkit-backdrop-filter: blur(20px) saturate(145%) !important;
+  line-height: normal !important;
+  overflow: visible !important;
 }
 
 .app-header {
@@ -472,6 +475,9 @@ body::before {
   display: flex;
   align-items: center;
   gap: 14px;
+  min-height: 0;
+  line-height: normal;
+  overflow: visible !important;
 }
 
 .header-title {
@@ -481,11 +487,43 @@ body::before {
   font-size: clamp(22px, 2.4vw, 48px) !important;
   font-weight: 800 !important;
   letter-spacing: 0 !important;
+  display: block;
+  line-height: 1.16 !important;
+  margin: 0 !important;
+  padding: 0.08em 0 0.1em !important;
+  overflow: visible !important;
+  text-transform: none;
 }
 
 .header-subtitle {
   color: var(--aether-muted);
   font-size: 13px;
+  line-height: 1.35;
+  margin-top: 2px;
+  overflow: visible;
+}
+
+.app-header h1,
+.app-header h2,
+.app-header h3,
+.app-header span,
+.app-header div,
+.aether-header h1,
+.aether-header h2,
+.aether-header h3,
+.aether-header span,
+.aether-header div {
+  line-height: normal;
+}
+
+.app-header h1,
+.app-header h2,
+.app-header h3,
+.aether-header h1,
+.aether-header h2,
+.aether-header h3 {
+  margin-top: 0;
+  overflow: visible;
 }
 
 .header-logo-icon {
@@ -928,7 +966,7 @@ body::before {
 
   .app-header,
   .aether-header {
-    padding: 0 22px !important;
+    padding: 12px 22px !important;
   }
 }
 

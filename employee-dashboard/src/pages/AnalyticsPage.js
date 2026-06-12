@@ -158,7 +158,7 @@ const AnalyticsPage = () => {
           <Col xs={24} lg={16}>
             <Card className="glass-card" bordered={false} title={<span style={{ color: '#f8fafc', fontSize: 16, fontWeight: 600 }}>Productivity Trend</span>}>
               <div style={{ height: 350 }}>
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={280} debounce={50}>
                   <AreaChart data={prodTrendData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                     <defs>
                       <linearGradient id="colorProd" x1="0" y1="0" x2="0" y2="1">
@@ -179,7 +179,7 @@ const AnalyticsPage = () => {
           <Col xs={24} lg={8}>
             <Card className="glass-card" bordered={false} title={<span style={{ color: '#f8fafc', fontSize: 16, fontWeight: 600 }}>Burnout Risk Prediction</span>}>
               <div style={{ height: 350 }}>
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={280} debounce={50}>
                   <PieChart>
                     <Pie data={burnoutData} cx="50%" cy="50%" innerRadius={70} outerRadius={110} paddingAngle={5} dataKey="value" animationDuration={1500} stroke="none">
                       {burnoutData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
@@ -195,7 +195,7 @@ const AnalyticsPage = () => {
           <Col xs={24} lg={8}>
             <Card className="glass-card" bordered={false} title={<span style={{ color: '#f8fafc', fontSize: 16, fontWeight: 600 }}>Jira Task Execution</span>}>
               <div style={{ height: 300 }}>
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={240} debounce={50}>
                   <BarChart data={jiraData} margin={{ top: 20, right: 10, left: -20, bottom: 5 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
                     <XAxis dataKey="name" stroke="#64748b" tick={{ fill: '#94a3b8', fontSize: 12 }} />
@@ -212,7 +212,7 @@ const AnalyticsPage = () => {
           <Col xs={24} lg={8}>
             <Card className="glass-card" bordered={false} title={<span style={{ color: '#f8fafc', fontSize: 16, fontWeight: 600 }}>Team Health Monitor</span>}>
               <div style={{ height: 300 }}>
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={240} debounce={50}>
                   <AreaChart data={healthTrendData} margin={{ top: 20, right: 10, left: -20, bottom: 5 }}>
                     <defs>
                       <linearGradient id="colorHealth" x1="0" y1="0" x2="0" y2="1">
@@ -233,7 +233,7 @@ const AnalyticsPage = () => {
           <Col xs={24} lg={8}>
             <Card className="glass-card" bordered={false} title={<span style={{ color: '#f8fafc', fontSize: 16, fontWeight: 600 }}>Workforce Distribution</span>}>
               <div style={{ height: 300 }}>
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={240} debounce={50}>
                   <PieChart>
                     <Pie data={distributionData} cx="50%" cy="50%" innerRadius={60} outerRadius={90} paddingAngle={5} dataKey="value" animationDuration={1500} stroke="none">
                       {distributionData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}

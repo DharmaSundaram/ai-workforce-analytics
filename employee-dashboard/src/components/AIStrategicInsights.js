@@ -108,7 +108,7 @@ const AIStrategicInsights = ({ employees, aiSummary, productivityTrend }) => {
         <Col xs={24} lg={12}>
           <Card className="glass-card" bordered={false} title={<span style={{ color: '#e2e8f0', fontSize: 16, fontWeight: 600 }}><i className="fa-solid fa-chart-bar" style={{ color: '#8b5cf6', marginRight: 8 }}></i>Strategic Insights Scorecard</span>}>
             <div style={{ height: 320 }}>
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={260} debounce={50}>
                 <BarChart data={strategicInsightsData} layout="vertical" margin={{ left: 30, right: 20, top: 10, bottom: 10 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" horizontal={false} />
                   <XAxis type="number" domain={[0, 100]} stroke="#64748b" tick={{ fill: '#94a3b8' }} />
@@ -137,7 +137,7 @@ const AIStrategicInsights = ({ employees, aiSummary, productivityTrend }) => {
         <Col xs={24} lg={12}>
           <Card className="glass-card" bordered={false} title={<span style={{ color: '#e2e8f0', fontSize: 16, fontWeight: 600 }}><i className="fa-solid fa-building" style={{ color: '#3b82f6', marginRight: 8 }}></i>Department Performance</span>}>
             <div style={{ height: 320 }}>
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={260} debounce={50}>
                 <BarChart data={departmentData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
                   <XAxis dataKey="name" stroke="#64748b" tick={{ fill: '#94a3b8', fontSize: 12 }} />
@@ -157,7 +157,7 @@ const AIStrategicInsights = ({ employees, aiSummary, productivityTrend }) => {
         <Col xs={24} lg={12}>
           <Card className="glass-card" bordered={false} title={<span style={{ color: '#e2e8f0', fontSize: 16, fontWeight: 600 }}><i className="fa-solid fa-arrow-trend-up" style={{ color: '#10b981', marginRight: 8 }}></i>Workforce Health Trend</span>}>
             <div style={{ height: 320 }}>
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={260} debounce={50}>
                 <LineChart data={trendData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
                   <XAxis dataKey="date" stroke="#64748b" tick={{ fill: '#94a3b8', fontSize: 12 }} />
@@ -177,7 +177,7 @@ const AIStrategicInsights = ({ employees, aiSummary, productivityTrend }) => {
         <Col xs={24} lg={12}>
           <Card className="glass-card" bordered={false} title={<span style={{ color: '#e2e8f0', fontSize: 16, fontWeight: 600 }}><i className="fa-solid fa-chart-pie" style={{ color: '#f59e0b', marginRight: 8 }}></i>Employee Distribution</span>}>
             <div style={{ height: 320 }}>
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={260} debounce={50}>
                 <PieChart>
                   <RechartsTooltip contentStyle={chartTooltipStyle} itemStyle={{ color: '#fff' }} />
                   <Legend verticalAlign="bottom" height={36} iconType="circle" />
