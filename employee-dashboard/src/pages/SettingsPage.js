@@ -160,15 +160,29 @@ function SettingsPage() {
       const data = await res.json();
 
       if (data.success) {
+        let description = `${data.synced_records || 0} new records synced from Jira.`;
+        if (data.skipped_duplicates > 0) {
+          description += ` ${data.skipped_duplicates} existing records skipped.`;
+        }
+        if (data.skipped_unassigned > 0) {
+          description += ` ${data.skipped_unassigned} unassigned tasks skipped.`;
+        }
+        if (data.errors && data.errors.length > 0) {
+          description += ` (${data.errors.length} warnings)`;
+        }
         api.success({
           message: "Jira Sync Complete",
-          description: `${data.synced_records || 0} records synced successfully.`,
+          description,
         });
+        loadSettings(); // Reload to update project sync counts
       } else {
         api.error({
           message: "Sync Failed",
           description: data.error || "Unknown error",
+          duration: 8,
         });
+        setConnectionStatus("error");
+        setConnectionMessage(data.error || "Sync failed");
       }
     } catch (err) {
       api.error({ message: "Sync Error", description: err.message });
