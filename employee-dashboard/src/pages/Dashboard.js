@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { API_BASE_URL as BACKEND_URL } from '../services/api';
 import { useNavigate } from "react-router-dom";
-import Papa from "papaparse";
 import { useTheme } from "../context/ThemeContext";
 import EmployeeModal from "../components/EmployeeModal";
 import NotificationBell from "../components/NotificationBell";
@@ -54,6 +53,8 @@ import {
   Badge,
   Typography,
   Switch,
+  Dropdown,
+  Avatar,
 } from "antd";
 
 // ---- Ant Design Icons (Material-style, no emojis) ----
@@ -89,11 +90,7 @@ function Dashboard() {
   const [predictionResult, setPredictionResult] = useState("");
   const [isPredicting, setIsPredicting] = useState(false);
   const [employeeHistory, setEmployeeHistory] = useState([]);
-  const [isUploading, setIsUploading] = useState(false);
-  const [modelAccuracy, setModelAccuracy] = useState(null);
-  const [uploadedFileNames, setUploadedFileNames] = useState([]);
-  const [totalRecords, setTotalRecords] = useState(0);
-  const [hasUploaded, setHasUploaded] = useState(false);
+  const modelAccuracy = null;
   const [jiraSyncStatus, setJiraSyncStatus] = useState({});
   const [isSyncingJira, setIsSyncingJira] = useState(false);
 
@@ -108,7 +105,6 @@ function Dashboard() {
   const [showModal, setShowModal] = useState(false);
 
   const [api, contextHolder] = notification.useNotification();
-  const fileInputRef = useRef(null);
 
   const [predictionForm, setPredictionForm] = useState({
     total_hours: "",
@@ -282,71 +278,6 @@ function Dashboard() {
     })
     .slice(0, 5);
 
-  // =====================================
-  // FILE UPLOAD — sends to backend /upload-dataset
-  // =====================================
-
-  const handleFileUpload = async (e) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
-
-    setIsUploading(true);
-    setPredictionResult("");
-
-    const formData = new FormData();
-    Array.from(files).forEach((file) => formData.append("files", file));
-
-    try {
-      const response = await fetch(`${BACKEND_URL}/upload-dataset`, {
-        method: "POST",
-        body: formData,
-      });
-
-      const result = await response.json();
-
-      if (result.success) {
-        setEmployees(result.employees);
-        setFilteredEmployees(result.employees);
-        setForecastData(result.forecast);
-        setModelAccuracy(result.accuracy);
-        setUploadedFileNames(result.file_names);
-        setTotalRecords(result.total_records);
-        setHasUploaded(true);
-
-        setSearch("");
-        setProjectFilter("All Projects");
-        setBurnoutFilter("All Burnout");
-
-        api.success({
-          message: "Dataset Loaded Successfully",
-          description: `${result.total_records} records from ${result.file_names.length} file(s) processed with ML models.`,
-          placement: "topRight",
-          duration: 4,
-        });
-
-        // Refresh history
-        fetchHistory();
-      } else {
-        api.error({
-          message: "Upload Failed",
-          description: result.error || "Unknown error occurred.",
-          placement: "topRight",
-          duration: 5,
-        });
-      }
-    } catch (error) {
-      api.error({
-        message: "Backend Connection Error",
-        description:
-          "Could not reach the Flask backend. Make sure it is running on port 5000.",
-        placement: "topRight",
-        duration: 6,
-      });
-    } finally {
-      setIsUploading(false);
-      if (fileInputRef.current) fileInputRef.current.value = "";
-    }
-  };
 
   // Fetch employee history
   const fetchHistory = () => {
@@ -375,9 +306,6 @@ function Dashboard() {
           setDepartmentRankings(data.department_rankings || []);
           setConnectedProjects(data.connected_projects || []);
           setForecastData(data.forecast || []);
-          setModelAccuracy(data.accuracy || null);
-          setTotalRecords(data.total_records || 0);
-          setHasUploaded(rows.length > 0 || Boolean(data.has_data));
           if (data.feature_importance) setFeatureImportance(data.feature_importance);
           if (data.productivity_trend) setProductivityTrend(data.productivity_trend);
           if (data.jira_insights) setJiraInsights(data.jira_insights);
@@ -509,25 +437,6 @@ function Dashboard() {
     }
   };
 
-  // =====================================
-  // EXPORT CSV
-  // =====================================
-
-  const exportCSV = () => {
-    const csv = Papa.unparse(filteredEmployees);
-    const blob = new Blob([csv]);
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "employee_report.csv";
-    a.click();
-    api.success({
-      message: "Export Successful",
-      description: `${filteredEmployees.length} records downloaded as CSV.`,
-      placement: "topRight",
-      duration: 2,
-    });
-  };
 
   // =====================================
   // NEW: EXPORT PDF
@@ -898,19 +807,22 @@ function Dashboard() {
       {contextHolder}
 
       {/* ===== HEADER ===== */}
-      <Header className="app-header">
-        <div className="header-brand">
-          <div className="header-logo-icon">
-            <i className="fa-solid fa-chart-line" style={{ fontSize: 20, color: "#fff" }} ></i>
+      <Header className="app-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 24px', background: 'rgba(15, 23, 42, 0.8)', backdropFilter: 'blur(12px)', borderBottom: '1px solid rgba(255,255,255,0.05)', height: '72px' }}>
+        {/* Left Side */}
+        <div className="header-brand" style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+          <div className="header-logo-icon" style={{ background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)', width: 40, height: 40, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(59,130,246,0.3)' }}>
+            <i className="fa-solid fa-brain" style={{ fontSize: 20, color: "#fff" }} ></i>
           </div>
           <div>
-            <div className="header-title">AI Workforce Analytics</div>
-            <div className="header-subtitle">
-              Real-time ML-powered employee intelligence dashboard
+            <div className="header-title" style={{ color: '#f8fafc', fontSize: 18, fontWeight: 700, letterSpacing: '0.5px' }}>AI Workforce Analytics</div>
+            <div className="header-subtitle" style={{ color: '#94a3b8', fontSize: 12 }}>
+              Enterprise Intelligence & Insights
             </div>
           </div>
         </div>
-        <div className="header-badge-area">
+
+        {/* Center */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
           <Badge
             count={totalEmployees}
             showZero
@@ -923,229 +835,206 @@ function Dashboard() {
                 border: "1px solid rgba(37,99,235,0.35)",
                 color: "#93c5fd",
                 borderRadius: 8,
-                padding: "4px 12px",
+                padding: "6px 16px",
                 fontSize: 13,
                 fontWeight: 600,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
               }}
             >
-              <i className="fa-solid fa-user-group" style={{ marginRight: 6 }} ></i>
+              <i className="fa-solid fa-user-group" ></i>
               Total Employees
             </Tag>
           </Badge>
 
-          {/* Theme Toggle */}
-          <div className="theme-toggle-wrap">
-            <Switch
-              checked={theme === "light"}
-              onChange={toggleTheme}
-              checkedChildren={<i className="fa-solid fa-circle"></i>}
-              unCheckedChildren={<i className="fa-solid fa-lightbulb"></i>}
-              className="theme-switch"
-            />
-          </div>
+          <Switch
+            checked={theme === "light"}
+            onChange={toggleTheme}
+            checkedChildren={<i className="fa-solid fa-circle"></i>}
+            unCheckedChildren={<i className="fa-solid fa-lightbulb"></i>}
+            className="theme-switch"
+          />
+        </div>
 
-          {/* Profile Link */}
-          <Button
-            icon={<i className="fa-solid fa-user"></i>}
-            onClick={() => navigate('/profile')}
-            className="header-nav-btn"
-          >
-            Profile
-          </Button>
-
-          {/* History Link */}
-          <Button
-            icon={<i className="fa-solid fa-clock-rotate-left"></i>}
-            onClick={() => navigate("/history")}
-            className="header-nav-btn"
-          >
-            History
-          </Button>
-
-          {/* Settings Link */}
-          <Button
-            icon={<i className="fa-solid fa-gear"></i>}
-            onClick={() => navigate("/settings")}
-            className="header-nav-btn"
-          >
-            Settings
-          </Button>
-
-          {/* Audit Logs Link */}
-          <Button
-            icon={<i className="fa-solid fa-shield-halved"></i>}
-            onClick={() => navigate("/audit-logs")}
-            className="header-nav-btn"
-          >
-            Audit
-          </Button>
-
-          {/* Analytics Link */}
-          <Button
-            icon={<i className="fa-solid fa-circle"></i>}
-            onClick={() => navigate("/analytics")}
-            className="header-nav-btn"
-          >
-            Analytics
-          </Button>
-
-          {/* Notification Bell */}
+        {/* Right Side */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
           <NotificationBell />
 
-          {/* Executive Report */}
-          <ExecutiveReportButton />
-
-          {/* Logout */}
-          <Button
-            icon={<i className="fa-solid fa-right-from-bracket"></i>}
-            onClick={handleLogout}
-            className="header-nav-btn"
-            danger
+          <Dropdown
+            menu={{
+              items: [
+                {
+                  key: "profile",
+                  icon: <i className="fa-solid fa-user" style={{ width: 16, color: '#3b82f6' }}></i>,
+                  label: "Profile",
+                  onClick: () => navigate("/profile"),
+                },
+                {
+                  key: "history",
+                  icon: <i className="fa-solid fa-clock-rotate-left" style={{ width: 16, color: '#10b981' }}></i>,
+                  label: "History",
+                  onClick: () => navigate("/history"),
+                },
+                {
+                  key: "settings",
+                  icon: <i className="fa-solid fa-gear" style={{ width: 16, color: '#64748b' }}></i>,
+                  label: "Settings",
+                  onClick: () => navigate("/settings"),
+                },
+                {
+                  key: "audit",
+                  icon: <i className="fa-solid fa-shield-halved" style={{ width: 16, color: '#f59e0b' }}></i>,
+                  label: "Audit",
+                  onClick: () => navigate("/audit-logs"),
+                },
+                {
+                  key: "analytics",
+                  icon: <i className="fa-solid fa-chart-simple" style={{ width: 16, color: '#8b5cf6' }}></i>,
+                  label: "Analytics",
+                  onClick: () => navigate("/analytics"),
+                },
+                {
+                  key: "report",
+                  label: <ExecutiveReportButton asMenuItem={true} />,
+                },
+                { type: "divider" },
+                {
+                  key: "logout",
+                  icon: <i className="fa-solid fa-right-from-bracket" style={{ width: 16, color: '#ef4444' }}></i>,
+                  label: "Logout",
+                  danger: true,
+                  onClick: handleLogout,
+                },
+              ],
+            }}
+            trigger={['click']}
+            placement="bottomRight"
+            overlayStyle={{ minWidth: 200 }}
           >
-            Logout
-          </Button>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 12,
+                cursor: "pointer",
+                padding: "6px 12px",
+                borderRadius: 24,
+                background: "rgba(255,255,255,0.05)",
+                border: "1px solid rgba(255,255,255,0.1)",
+                transition: "all 0.3s ease",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = "rgba(255,255,255,0.1)";
+                e.currentTarget.style.borderColor = "rgba(59,130,246,0.4)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = "rgba(255,255,255,0.05)";
+                e.currentTarget.style.borderColor = "rgba(255,255,255,0.1)";
+              }}
+            >
+              <Avatar
+                size={36}
+                style={{
+                  background: "linear-gradient(135deg, #3b82f6, #8b5cf6)",
+                  border: "2px solid #1e293b",
+                  boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
+                }}
+              >
+                <i className="fa-solid fa-user-tie"></i>
+              </Avatar>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                <span style={{ color: "#f8fafc", fontWeight: 600, fontSize: 13, lineHeight: '1.2' }}>Administrator</span>
+                <span style={{ color: "#94a3b8", fontSize: 11, lineHeight: '1.2' }}>Enterprise Admin</span>
+              </div>
+              <i className="fa-solid fa-chevron-down" style={{ color: "#64748b", fontSize: 12, marginLeft: 4 }}></i>
+            </div>
+          </Dropdown>
         </div>
       </Header>
 
       {/* ===== CONTENT ===== */}
       <Content className="app-content">
 
-        {/* ===== FILE UPLOAD ===== */}
-        <Card className="upload-card glass-card" bordered={false}>
-          <Spin
-            spinning={isUploading}
-            indicator={
-              <i className="fa-solid fa-spinner fa-spin" style={{ fontSize: 24, color: "#2563eb" }} spin ></i>
-            }
-            tip="Processing with ML models..."
-          >
-            <div className="upload-inner">
-              <div className="upload-icon-area">
-                <i className="fa-solid fa-cloud-arrow-up" style={{ fontSize: 24, color: "#fff" }} ></i>
-              </div>
-              <div className="upload-text-area">
-                <h3>Upload Employee Dataset</h3>
-                <p>
-                  Supports CSV, XLSX, XLS — select multiple files to merge
-                  datasets automatically
-                </p>
-              </div>
 
-              <input
-                type="file"
-                accept=".csv,.xlsx,.xls"
-                multiple
-                onChange={handleFileUpload}
-                ref={fileInputRef}
-                className="file-input-hidden"
-                id="dataset-upload"
-              />
-
-              <Button
-                icon={isUploading ? <i className="fa-solid fa-spinner fa-spin"></i> : <i className="fa-solid fa-circle"></i>}
-                className="upload-btn"
-                onClick={() =>
-                  fileInputRef.current && fileInputRef.current.click()
-                }
-                type="primary"
-                disabled={isUploading}
-              >
-                {isUploading ? "Processing..." : "Upload Dataset"}
-              </Button>
-            </div>
-
-            {uploadedFileNames.length > 0 && (
-              <div className="upload-status">
-                <i className="fa-solid fa-file-lines" style={{ color: "#60a5fa" }} ></i>
-                {uploadedFileNames.map((name, i) => (
-                  <Tag key={i} className="file-tag" title={name}>
-                    <i className="fa-solid fa-file-lines" style={{ marginRight: 4 }} ></i>
-                    {name}
-                  </Tag>
-                ))}
-                <span className="upload-record-count">
-                  <i className="fa-solid fa-circle" style={{ color: "#10b981", marginRight: 4 }} ></i>
-                  {totalRecords.toLocaleString()} total records loaded
+        {/* ===== COMPACT JIRA SYNC STATUS BAR ===== */}
+        <div style={{
+          margin: '0 0 24px 0',
+          padding: '12px 24px',
+          background: 'rgba(15, 23, 42, 0.4)',
+          backdropFilter: 'blur(10px)',
+          borderBottom: '1px solid rgba(255,255,255,0.05)',
+          display: 'flex',
+          flexWrap: 'wrap',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 16
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 24, flexWrap: 'wrap' }}>
+            {/* Status Indicator */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ color: '#94a3b8', fontSize: 13, fontWeight: 500 }}>Jira Status:</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <i className="fa-solid fa-circle" style={{
+                  fontSize: 10,
+                  color: isSyncingJira ? '#f59e0b' : (jiraSyncStatus.last_status === 'success' ? '#10b981' : (jiraSyncStatus.last_status === 'error' ? '#ef4444' : '#94a3b8')),
+                  filter: `drop-shadow(0 0 4px ${isSyncingJira ? '#f59e0b' : (jiraSyncStatus.last_status === 'success' ? '#10b981' : '#ef4444')})`
+                }}></i>
+                <span style={{
+                  color: isSyncingJira ? '#fcd34d' : (jiraSyncStatus.last_status === 'success' ? '#6ee7b7' : (jiraSyncStatus.last_status === 'error' ? '#fca5a5' : '#94a3b8')),
+                  fontWeight: 600,
+                  fontSize: 13
+                }}>
+                  {isSyncingJira ? 'Syncing...' : (jiraSyncStatus.last_status === 'success' ? 'Connected' : (jiraSyncStatus.last_status === 'error' ? 'Error' : 'Idle'))}
                 </span>
               </div>
-            )}
-          </Spin>
-        </Card>
+            </div>
 
-        {/* ===== JIRA SYNC STATUS ===== */}
-        <Row gutter={[20, 20]} style={{ marginBottom: 28 }}>
-          <Col xs={24} sm={12} md={6}>
-            <Card className="kpi-card glass-card" bordered={false}
-              style={{ background: 'linear-gradient(135deg, #0f1f3d 0%, #1a3460 100%)' }}>
-              <span className="kpi-icon">
-                <i className="fa-solid fa-circle" style={{ color: '#60a5fa' }} ></i>
-              </span>
-              <Statistic
-                title="Last Jira Sync"
-                value={jiraSyncStatus.last_sync || 'Never'}
-                valueStyle={{ color: '#93c5fd', fontSize: 14 }}
-              />
-            </Card>
-          </Col>
-          <Col xs={24} sm={12} md={6}>
-            <Card className="kpi-card glass-card" bordered={false}
-              style={{ background: 'linear-gradient(135deg, #0f1f3d 0%, #1a3460 100%)' }}>
-              <span className="kpi-icon">
-                <i className="fa-solid fa-circle" style={{ color: '#a78bfa' }} ></i>
-              </span>
-              <Statistic
-                title="Next Sync"
-                value={jiraSyncStatus.next_sync || 'Not scheduled'}
-                valueStyle={{ color: '#c4b5fd', fontSize: 14 }}
-              />
-            </Card>
-          </Col>
-          <Col xs={24} sm={12} md={6}>
-            <Card className="kpi-card glass-card" bordered={false}
-              style={{ background: 'linear-gradient(135deg, #0f1f3d 0%, #1a3460 100%)' }}>
-              <span className="kpi-icon">
-                <i className="fa-solid fa-lock" style={{ color: jiraSyncStatus.last_status === 'success' ? '#10b981' : jiraSyncStatus.last_status === 'error' ? '#ef4444' : '#94a3b8' }} ></i>
-              </span>
-              <Statistic
-                title="Sync Status"
-                value={jiraSyncStatus.last_status === 'success' ? 'Connected' : jiraSyncStatus.last_status === 'error' ? 'Error' : 'Idle'}
-                valueStyle={{ color: jiraSyncStatus.last_status === 'success' ? '#6ee7b7' : jiraSyncStatus.last_status === 'error' ? '#fca5a5' : '#94a3b8', fontSize: 16 }}
-              />
-            </Card>
-          </Col>
-          <Col xs={24} sm={12} md={6}>
-            <Card className="kpi-card glass-card" bordered={false}
-              style={{ background: 'linear-gradient(135deg, #0f1f3d 0%, #1a3460 100%)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <div>
-                  <span className="kpi-icon">
-                    <i className="fa-solid fa-arrows-rotate" style={{ color: '#34d399' }} spin={isSyncingJira} ></i>
-                  </span>
-                  <Statistic
-                    title="Records Synced"
-                    value={jiraSyncStatus.last_records || 0}
-                    valueStyle={{ color: '#6ee7b7' }}
-                  />
-                </div>
-                <Button
-                  icon={<i className="fa-solid fa-arrows-rotate"></i>}
-                  onClick={handleJiraSync}
-                  loading={isSyncingJira}
-                  type="primary"
-                  style={{
-                    background: 'linear-gradient(135deg, #2563eb, #7c3aed)',
-                    border: 'none',
-                    borderRadius: 8,
-                    height: 36,
-                    fontWeight: 600,
-                  }}
-                >
-                  {isSyncingJira ? 'Syncing...' : 'Sync Jira'}
-                </Button>
-              </div>
-            </Card>
-          </Col>
-        </Row>
+            <div style={{ width: 1, height: 16, background: 'rgba(255,255,255,0.1)' }}></div>
+
+            {/* Last Sync */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <i className="fa-solid fa-clock-rotate-left" style={{ color: '#60a5fa', fontSize: 13 }}></i>
+              <span style={{ color: '#94a3b8', fontSize: 13 }}>Last Sync:</span>
+              <span style={{ color: '#e2e8f0', fontSize: 13, fontWeight: 500 }}>{jiraSyncStatus.last_sync || 'Never'}</span>
+            </div>
+
+            <div style={{ width: 1, height: 16, background: 'rgba(255,255,255,0.1)' }}></div>
+
+            {/* Next Sync */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <i className="fa-solid fa-forward-step" style={{ color: '#a78bfa', fontSize: 13 }}></i>
+              <span style={{ color: '#94a3b8', fontSize: 13 }}>Next Sync:</span>
+              <span style={{ color: '#e2e8f0', fontSize: 13, fontWeight: 500 }}>{jiraSyncStatus.next_sync || 'Not scheduled'}</span>
+            </div>
+
+            <div style={{ width: 1, height: 16, background: 'rgba(255,255,255,0.1)' }}></div>
+
+            {/* Records */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <i className="fa-solid fa-database" style={{ color: '#34d399', fontSize: 13 }}></i>
+              <span style={{ color: '#94a3b8', fontSize: 13 }}>Records:</span>
+              <span style={{ color: '#e2e8f0', fontSize: 13, fontWeight: 500 }}>{jiraSyncStatus.last_records || 0}</span>
+            </div>
+          </div>
+
+          <Button
+            icon={<i className={`fa-solid fa-arrows-rotate ${isSyncingJira ? 'fa-spin' : ''}`}></i>}
+            onClick={handleJiraSync}
+            loading={isSyncingJira}
+            type="primary"
+            size="small"
+            style={{
+              background: 'linear-gradient(135deg, #2563eb, #7c3aed)',
+              border: 'none',
+              borderRadius: 6,
+              fontWeight: 600,
+              padding: '0 16px',
+            }}
+          >
+            {isSyncingJira ? 'Syncing...' : 'Sync Now'}
+          </Button>
+        </div>
 
         {/* ===== AI WORKFORCE SUMMARY ===== */}
         {aiSummary && aiSummary.has_data && (
@@ -1222,12 +1111,12 @@ function Dashboard() {
         )}
 
         {/* ===== AI STRATEGIC INSIGHTS ===== */}
-        {hasUploaded && employees.length > 0 && (
-          <AIStrategicInsights employees={filteredEmployees} aiSummary={aiSummary} />
+        {employees.length > 0 && (
+          <AIStrategicInsights employees={filteredEmployees} aiSummary={aiSummary} productivityTrend={productivityTrend} />
         )}
 
         {/* ===== ANALYTICS ROW: Trend + Feature Importance + Jira Insights ===== */}
-        {hasUploaded && employees.length > 0 && (
+        {employees.length > 0 && (
           <Row gutter={[20, 20]} style={{ marginBottom: 24 }}>
             {/* Productivity Trend */}
             {productivityTrend.length > 0 && (
@@ -1307,7 +1196,7 @@ function Dashboard() {
         )}
 
         {/* ===== KPI CARDS ===== */}
-        {!hasUploaded && employees.length === 0 ? (
+        {employees.length === 0 ? (
           <SkeletonKPIs />
         ) : (
           <Row gutter={[20, 20]} style={{ marginBottom: 28 }}>
@@ -1471,7 +1360,7 @@ function Dashboard() {
         )}
 
         {/* ===== PROJECT PERFORMANCE OVERVIEW ===== */}
-        {hasUploaded && projectPerformanceOverview.length > 0 && (
+        {projectPerformanceOverview.length > 0 && (
           <>
             <h3 style={{ color: "#f8fafc", marginBottom: 16 }}>Project Performance Overview</h3>
             <Row gutter={[20, 20]} style={{ marginBottom: 28 }}>
@@ -1510,7 +1399,7 @@ function Dashboard() {
         )}
 
         {/* ===== EXECUTIVE KPIs ===== */}
-        {hasUploaded && employees.length > 0 && (
+        {employees.length > 0 && (
           <ExecutiveKPIs
             employees={filteredEmployees}
             previousAvgProductivity={aiSummary?.avg_productivity || 0}
@@ -1518,7 +1407,7 @@ function Dashboard() {
         )}
 
         {/* ===== CHARTS ROW 1: Existing Pie + Line + Leaderboard/Accuracy ===== */}
-        {!hasUploaded && employees.length === 0 ? (
+        {employees.length === 0 ? (
           <SkeletonCharts />
         ) : (
           <Row gutter={[20, 20]} style={{ marginBottom: 28 }}>
@@ -1996,7 +1885,7 @@ function Dashboard() {
         )}
 
         {/* ===== CHARTS ROW 3: Department Charts ===== */}
-        {hasUploaded && employees.length > 0 && (
+        {employees.length > 0 && (
           <Row gutter={[20, 20]} style={{ marginBottom: 24 }}>
             <Col xs={24} lg={12}>
               <Card
@@ -2091,7 +1980,7 @@ function Dashboard() {
         )}
 
         {/* ===== SYSTEM HEALTH + DEPARTMENT RANKING ===== */}
-        {hasUploaded && employees.length > 0 && (
+        {employees.length > 0 && (
           <Row gutter={[20, 20]} style={{ marginBottom: 24 }}>
             <Col xs={24} lg={8}>
               <SystemHealthWidget />
@@ -2184,7 +2073,7 @@ function Dashboard() {
               </Button>
               <Button
                 icon={<i className="fa-solid fa-file-export"></i>}
-                onClick={exportCSV}
+                
                 className="export-btn"
                 type="primary"
                 disabled={filteredEmployees.length === 0}
@@ -2205,7 +2094,7 @@ function Dashboard() {
         </Card>
 
         {/* ===== EMPLOYEE TABLE ===== */}
-        {!hasUploaded && employees.length === 0 ? (
+        {employees.length === 0 ? (
           <SkeletonTable />
         ) : (
           <Card
@@ -2236,7 +2125,7 @@ function Dashboard() {
               <div style={{ display: "flex", gap: 8 }}>
                 <Button
                   icon={<i className="fa-solid fa-file-export"></i>}
-                  onClick={exportCSV}
+                  
                   className="export-btn"
                   size="small"
                   disabled={filteredEmployees.length === 0}

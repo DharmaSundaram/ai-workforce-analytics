@@ -113,8 +113,8 @@ export const fontOptions = {
 
 export function ThemeProvider({ children }) {
   const [theme, setTheme] = useState(() => localStorage.getItem("app-theme") || "dark");
-  const [colorTheme, setColorTheme] = useState(() => localStorage.getItem("app-color-theme") || "red");
-  const [fontFamily, setFontFamily] = useState(() => localStorage.getItem("app-font") || "Merriweather");
+  const [colorTheme, setColorTheme] = useState(() => localStorage.getItem("app-color-theme") || "cyan");
+  const [fontFamily, setFontFamily] = useState(() => localStorage.getItem("app-font") || "Inter");
   const [glassEnabled, setGlassEnabled] = useState(() => localStorage.getItem("app-glass") !== "false");
   const [animationsEnabled, setAnimationsEnabled] = useState(() => localStorage.getItem("app-anim") !== "false");
   const [particlesEnabled, setParticlesEnabled] = useState(() => localStorage.getItem("app-particles") !== "false");

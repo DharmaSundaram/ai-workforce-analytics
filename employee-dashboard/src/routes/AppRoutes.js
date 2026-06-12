@@ -1,6 +1,8 @@
 import React from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 
+import Sidebar from "../components/Sidebar";
+import { useTheme } from "../context/ThemeContext";
 import AuditLogPage from "../pages/AuditLogPage";
 import Dashboard from "../pages/Dashboard";
 import EmployeeHistoryPage from "../pages/EmployeeHistoryPage";
@@ -13,10 +15,27 @@ import SettingsPage from "../pages/SettingsPage";
 import ProtectedRoute from "./ProtectedRoute";
 
 
-function protectedPage(page) {
-  return <ProtectedRoute>{page}</ProtectedRoute>;
+function ProtectedShell({ children }) {
+  const { sidebarCollapsed } = useTheme();
+
+  return (
+    <ProtectedRoute>
+      <Sidebar />
+      <main
+        className="aether-main-shell"
+        style={{
+          marginLeft: sidebarCollapsed ? 72 : 260,
+        }}
+      >
+        {children}
+      </main>
+    </ProtectedRoute>
+  );
 }
 
+function protectedPage(page) {
+  return <ProtectedShell>{page}</ProtectedShell>;
+}
 
 function AppRoutes() {
   return (
@@ -36,4 +55,3 @@ function AppRoutes() {
 }
 
 export default AppRoutes;
-
